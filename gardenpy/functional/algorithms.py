@@ -993,7 +993,7 @@ class Optimizers:
         return method, checker(params=hyperparams, **kwargs)
 
     def _get_memories(self, theta: np.ndarray) -> dict:
-        # instantiates memory dictionary
+        # initializes memory dictionary
         memories = {
             'adam': {
                 'psi_p': 0.0 * theta,
@@ -1127,7 +1127,7 @@ class Optimizers:
         elif isinstance(theta, Tensor):
             # theta tensor
             if self._memories is None:
-                # instantiate memory
+                # initialize memory
                 self._memories = self._get_memories(theta=theta.array)
             # method
             result = Tensor(self._alg(theta=theta.array, nabla=nabla, m=self._memories))
@@ -1137,7 +1137,7 @@ class Optimizers:
         elif isinstance(theta, np.ndarray) and not self._correlator:
             # theta array
             if self._memories is None:
-                # instantiate memory
+                # initialize memory
                 self._memories = self._get_memories(theta=theta)
             # method
             return self._alg(theta=theta, nabla=nabla, m=self._memories)
