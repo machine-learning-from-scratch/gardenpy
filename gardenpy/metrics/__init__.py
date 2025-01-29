@@ -5,8 +5,8 @@ Contains:
     - :func:`confusion_matrix`
 """
 
-from .metrics import confusion_matrix
+from .raw import c_matrix
 
 __all__ = [
-    'confusion_matrix'
+    'c_matrix'
 ]

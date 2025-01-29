@@ -94,16 +94,16 @@ Report any issues to [the issues page](https://github.com/machine-learning-from-
 
 This project is a work in progress.
 
-Tensor autograd - Done
-Tensor base operations - In progress
-ML algorithms - Done
-Tensor algorithm integration - Done
-Computational graph building - Done
-Base models - In progress
-Data visualization tools - Not started
-Example implementation - Not started
-Library setup, README, and website - In progress
+Tensor autograd – Done
+Tensor base operations – In progress
+ML algorithms – Done
+Tensor algorithm integration – Done
+Computational graph building – Done
+Base models – In progress
+Data visualization tools – Not started
+Example implementation – Not started
+Library setup, README, and website – In progress
 
 ------------------------------------------------------------------------------------------------------------------------
 
-![Machine Learning from Scratch Logo](https://github.com/machine-learning-from-scratch/gardenpy/blob/main/docs/machine_learning_from_scratch_flat_logo.png)
+![Machine Learning from Scratch Logo](https://github.com/machine-learning-from-scratch/gardenpy/blob/main/docs/machine_learning_from_scratch_large_logo.png)

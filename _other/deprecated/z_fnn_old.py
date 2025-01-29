@@ -13,7 +13,7 @@ import pandas as pd
 from functional.algorithms import (
     Initializers
 )
-from gardenpy.metrics.metrics import (
+from gardenpy.metrics.raw import (
     cm
 )
 from gardenpy.utils.data_utils import (
