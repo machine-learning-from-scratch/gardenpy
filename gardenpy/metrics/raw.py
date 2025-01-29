@@ -11,7 +11,22 @@ import numpy as np
 
 def c_matrix(pred: Union[list, np.ndarray], expect: Union[list, np.ndarray], *, norm: bool = True) -> np.ndarray:
     r"""
-    ...
+    **Confusion matrix.**
+
+    Generates a confusion matrix from raw data.
+    Uses labels that start from one, not zero.
+
+    Args:
+        pred (list, np.ndarray): Predicted outcomes.
+        expect (list, np.ndarray): Expected outcomes.
+        norm (bool): Toggle for normalization.
+
+    Returns:
+        np.ndarray: Generated confusion matrix.
+
+    Raises:
+        TypeError: Invalid predicted or expected raw data values.
+        ValueError: Non-matching predicted and expected raw data values.
     """
     # reformat data
     pred, expect = np.array(pred).squeeze() - 1, np.array(expect).squeeze() - 1
