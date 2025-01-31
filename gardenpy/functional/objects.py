@@ -896,11 +896,11 @@ class Tensor:
 
         @staticmethod
         def backward(main: np.ndarray, other: np.ndarray) -> np.ndarray:
-            raise NotImplementedError("Currently not implemented.")
+            return np.kron(np.eye(main.shape[0]), other.T)
 
         @staticmethod
         def backward_o(other: np.ndarray, main: np.ndarray) -> np.ndarray:
-            raise NotImplementedError("Currently not implemented.")
+            return np.kron(main.T, np.eye(other.shape[1]))
 
         @staticmethod
         def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:

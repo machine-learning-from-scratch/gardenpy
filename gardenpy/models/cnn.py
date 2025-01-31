@@ -6,7 +6,10 @@ Contains:
     - :class:`CNN`
 """
 
+from ._nn import Base
 
-class CNN:
+
+class CNN(Base):
     def __init__(self):
+        super().__init__()
         raise NotImplementedError("CNN has not been completed.")

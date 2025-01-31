@@ -18,7 +18,9 @@ from .objects import Tensor
 from .operators import (
     tensor,
     nabla,
-    chain
+    chain,
+    zero_grad,
+    replace
 )
 from .algorithms import (
     Initializers,
@@ -32,6 +34,8 @@ __all__ = [
     'tensor',
     'nabla',
     'chain',
+    'zero_grad',
+    'replace',
     'Initializers',
     'Activators',
     'Losses',

@@ -9,7 +9,12 @@ from ._nn import Base
 
 
 class DNN(Base):
-    ...
+    def __init__(self, layers):
+        super().__init__()
+
+
+
+
 #
 # import time
 # from typing import Union
