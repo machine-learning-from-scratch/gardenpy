@@ -896,11 +896,11 @@ class Tensor:
 
         @staticmethod
         def backward(main: np.ndarray, other: np.ndarray) -> np.ndarray:
-            return np.kron(np.eye(main.shape[0]), other.T)
+            return np.array([np.sum(other.T, axis=0)])
 
         @staticmethod
         def backward_o(other: np.ndarray, main: np.ndarray) -> np.ndarray:
-            return np.kron(main.T, np.eye(other.shape[1]))
+            return other.T
 
         @staticmethod
         def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
