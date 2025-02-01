@@ -113,7 +113,7 @@ class Tensor:
         return self._type
 
     @property
-    def tracker(self) -> Union[dict, None]:
+    def tracker(self) -> Union[Dict[str, Union[str, None, List[str]]], None]:
         r"""
         **Tensor's internal tracker.**
 
@@ -170,7 +170,23 @@ class Tensor:
         return self._tensor
 
     @property
-    def tags(self) -> list:
+    def shape(self) -> Tuple[int, ...]:
+        r"""
+        **Tensor's shape.**
+
+        Returns:
+            tuple: Tensor's shape.
+
+        Raises:
+            UserWarning: If the function is used on a deleted Tensor.
+                Turned off by toggling ikwiad.
+                See :func:`Tensor.ikwiad`.
+        """
+        self._is_valid_tensor(itm=self)
+        return self._tensor.shape
+
+    @property
+    def tags(self) -> List[str]:
         r"""
         **Tensor's tags.**""
 
@@ -244,7 +260,7 @@ class Tensor:
     ####################################################################################################################
 
     @classmethod
-    def instances(cls) -> list:
+    def instances(cls) -> List[str]:
         r"""
         **Tensor instances.**
 
@@ -900,7 +916,7 @@ class Tensor:
 
         @staticmethod
         def backward_o(other: np.ndarray, main: np.ndarray) -> np.ndarray:
-            return other.T
+            return main.T * (0.0 * other + 1.0)
 
         @staticmethod
         def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
