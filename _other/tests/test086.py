@@ -5,7 +5,10 @@ init = Initializers('gaussian')
 
 x = init(1, 4)
 w = init(4, 5)
-b = init(5, 1)
-o1 = x @ w
-y = o1 + b
-print(nabla(w, y).shape)
+b = init(1, 5)
+a1 = x @ w
+y = a1 + b
+print(nabla(a1, y).shape)
+print(nabla(x, a1).shape)
+print(nabla(x, y).shape)
+print(nabla(b, y).shape)

@@ -1,6 +1,7 @@
 .idea
 .DS_Store
 *.pyc
+*.swp
 demo/data/*/data/*
 !demo/data/*/data/data_generator.py
 demo/*/*/processed_data/*

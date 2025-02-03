@@ -912,7 +912,7 @@ class Tensor:
 
         @staticmethod
         def backward(main: np.ndarray, other: np.ndarray) -> np.ndarray:
-            return np.array([np.sum(other.T, axis=0)])
+            return np.array([np.sum(other, axis=1)])
 
         @staticmethod
         def backward_o(other: np.ndarray, main: np.ndarray) -> np.ndarray:
@@ -923,7 +923,10 @@ class Tensor:
             try:
                 return down @ up
             except ValueError:
-                return down * up
+                try:
+                    return down * up
+                except ValueError:
+                    return np.sum(down.T * up, axis=1)
 
         @staticmethod
         def chain_o(down: np.ndarray, up: np.ndarray) -> np.ndarray:
@@ -1036,18 +1039,21 @@ class Tensor:
 
         @staticmethod
         def backward(main: np.ndarray, other: np.ndarray) -> np.ndarray:
-            return (main * 0.0 + 1.0) * np.eye(main.shape[1])
+            return main * 0.0 + 1.0
 
         @staticmethod
         def backward_o(other: np.ndarray, main: np.ndarray) -> np.ndarray:
-            return (other * 0.0 + 1.0) * np.eye(other.shape[1])
+            return other * 0.0 + 1.0
 
         @staticmethod
         def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
             try:
                 return down @ up
             except ValueError:
-                return down * up
+                try:
+                    return down * up
+                except ValueError:
+                    return np.array([np.sum(down * up.T, axis=1)])
 
         @staticmethod
         def chain_o(down: np.ndarray, up: np.ndarray) -> np.ndarray:
