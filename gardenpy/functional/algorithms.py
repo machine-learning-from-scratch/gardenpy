@@ -60,6 +60,7 @@ class Initializers:
         """
         # internals
         self._ikwiad = bool(ikwiad)
+        self.rng = np.random.default_rng()
         self._method, self._hyperparams = self._get_method(method=method, hyperparams=hyperparameters, **kwargs)
 
         # set method
@@ -137,13 +138,13 @@ class Initializers:
             return (
                     h['kappa'] *
                     np.sqrt(2.0 / float(args[-2] + args[-1])) *
-                    np.random.normal(loc=h['mu'], scale=h['sigma'], size=args)
+                    self.rng.normal(loc=h['mu'], scale=h['sigma'], size=args)
             )
 
         @initializer_method
         def gaussian(*args: int) -> np.ndarray:
             # gaussian method
-            return h['kappa'] * np.random.normal(loc=h['mu'], scale=h['sigma'], size=args)
+            return h['kappa'] * self.rng.normal(loc=h['mu'], scale=h['sigma'], size=args)
 
         @initializer_method
         def uniform(*args: int) -> np.ndarray:
@@ -185,7 +186,7 @@ class Activators:
     The derivative of these activation functions can be called if using NumPy arrays.
 
     Supports:
-        - Softmax
+        - Softmax (broken)
         - Rectified Linear Unit (ReLU)
         - Leaky Rectified Linear Unit (Leaky ReLU)
         - Sigmoid
@@ -194,7 +195,6 @@ class Activators:
         - Mish
     """
     _methods: List[str] = [
-        'softmax',
         'relu',
         'lrelu',
         'sigmoid',
@@ -764,7 +764,8 @@ class Optimizers:
     Supports:
         - Adaptive Moment Estimation (Adam)
         - Stochastic Gradient Descent (SGD)
-        - Root Mean Squared Propagation (RMSP)
+        - Root Mean Squared Propagation (RMSProp)
+        - Adaptive Gradient Algorithm (AdaGrad) (broken)
     """
     _methods: List[str] = [
         'adam',
@@ -805,6 +806,11 @@ class Optimizers:
             - lambda_d (float, int), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
             - beta (float, int), default = 0.99, 0.0 <= beta < 1.0: First moment beta.
             - mu (float, int), default = 0.0, 0.0 <= mu < 1.0: Momentum.
+            - epsilon (float), default = 1e-10, 0 < epsilon <= 1e-02: Numerical stability constant.
+        adag:
+            - alpha (float, int), default = 1e-03: Learning rate.
+            - lambda_d (float, int), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
+            - nu (float, int), default = 0.0, 0.0 <= nu <= 1.0: Learning rate decay rate.
             - epsilon (float), default = 1e-10, 0 < epsilon <= 1e-02: Numerical stability constant.
 
         Args:
