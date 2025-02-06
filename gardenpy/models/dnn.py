@@ -5,12 +5,15 @@ Contains:
     - :class:`DNN`
 """
 
-from ._nn import Base
+from ._nn import BaseNN
 
 
-class DNN(Base):
-    def __init__(self, layers):
-        super().__init__()
+class DNN(BaseNN):
+    def __init__(self, layers, *, status: bool = False, ikwiad: bool = False):
+        super().__init__(status=status, ikwiad=ikwiad)
+
+    def _forward(self, x: Tensor, y: Tensor):
+        ...
 
 
 

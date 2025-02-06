@@ -2,7 +2,7 @@ r"""
 **GardenPy pre-built NN base classes.**
 
 Contains:
-    - :class:`Base`
+    - :class:`BaseNN`
 """
 
 from typing import Optional
@@ -11,7 +11,7 @@ from ..functional.objects import Tensor
 from ..functional.algorithms import Losses, Optimizers
 
 
-class Base:
+class BaseNN:
     def __init__(self, *, status: bool = False, ikwiad: bool = True):
         self._optim_type = Optimizers('adam')
         self._criterion = Losses('centropy')
@@ -19,10 +19,10 @@ class Base:
         self._ikwiad = bool(ikwiad)
 
     def _forward(self, x: Tensor, y: Tensor) -> Tensor:
-        raise NotImplementedError("Forward pass hasn't been configured in a subclass")
+        raise NotImplementedError("Forward pass hasn't been configured in a subclass.")
 
     def _backward(self, y: Tensor, yhat: Tensor) -> Tensor:
-        raise NotImplementedError("Backward pass hasn't been configured in a subclass")
+        raise NotImplementedError("Backward pass hasn't been configured in a subclass.")
 
     def _optim(self, nablas):
         ...

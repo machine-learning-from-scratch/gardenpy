@@ -1,6 +1,6 @@
 import gardenpy as gp
 
-init = gp.Initializers('gaussian').initialize
+init = gp.Initializers('gaussian')
 
 t1 = init(5, 5)
 t2 = init(5, 5)
