@@ -75,7 +75,7 @@ class Tensor:
         # update instances and id
         Tensor._add_instance(self)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         self._is_valid_tensor(itm=self)
         return str(self._tensor)
 
