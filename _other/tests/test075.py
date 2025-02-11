@@ -22,11 +22,11 @@ for i in range(1000):
     if print_loss:
         # stupid algorithm for this
         if (old_loss - loss.array).item() > 0:
-            print("{reset}{:<20}{white}loss{reset}Difference: {green}{:<20}{reset}".format(str(loss.array)[2:-2], str(old_loss - loss.array)[2:-2], **ansi))
+            print("{reset}Loss: {bright_black}{:<20}{reset}Difference: {green}{:<20}{reset}".format(str(loss.array)[2:-2], str(old_loss - loss.array)[2:-2], **ansi))
         elif 0 > (old_loss - loss.array).item():
-            print("{reset}Loss: {bright_black}{:<20}{bright_black}{reset}Difference: {red}{:<20}{reset}".format(str(loss.array)[2:-2], str(old_loss - loss.array)[2:-2], **ansi))
+            print("{reset}Loss: {bright_black}{:<20}{reset}Difference: {red}{:<20}{reset}".format(str(loss.array)[2:-2], str(old_loss - loss.array)[2:-2], **ansi))
         else:
-            print("{reset}Loss: {bright_black}{:<20}{bright_black}{reset}Difference: {white}{:<20}{reset}".format(str(loss.array)[2:-2], str(old_loss - loss.array)[2:-2], **ansi))
+            print("{reset}Loss: {bright_black}{:<20}{reset}Difference: {bright_black}{:<20}{reset}".format(str(loss.array)[2:-2], str(old_loss - loss.array)[2:-2], **ansi))
         old_loss = loss.array
     Tensor.zero_grad(x, w, y)
-    time.sleep(0.005)
+    # time.sleep(0.005)

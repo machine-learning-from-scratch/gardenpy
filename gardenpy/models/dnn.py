@@ -5,6 +5,7 @@ Contains:
     - :class:`DNN`
 """
 
+from ..functional.objects import Tensor
 from ._nn import BaseNN
 
 
