@@ -3,6 +3,7 @@ from gardenpy.functional.operators import tensor, nabla
 from gardenpy.functional.objects import Tensor
 from gardenpy.utils.helpers import ansi
 import time
+from time import perf_counter as pf
 
 init = Initializers('gaussian')
 criterion = Losses('ssr')
@@ -14,6 +15,7 @@ y = tensor([[0.5, 1]])
 print_loss = True
 old_loss = 0.0
 
+start = pf()
 for i in range(1000):
     yhat = x * w
     loss = criterion(yhat, y)
@@ -30,3 +32,7 @@ for i in range(1000):
         old_loss = loss.array
     Tensor.zero_grad(x, w, y)
     # time.sleep(0.005)
+
+end = pf()
+print(f"Elapsed: {ansi['bright_black']}{end - start}{ansi['reset']}")
+
