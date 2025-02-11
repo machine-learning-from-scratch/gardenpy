@@ -31,7 +31,7 @@ for i in range(1000):
             print("{reset}Loss: {bright_black}{:<20}{reset}Difference: {bright_black}{:<20}{reset}".format(str(loss.array)[2:-2], str(old_loss - loss.array)[2:-2], **ansi))
         old_loss = loss.array
     Tensor.zero_grad(x, w, y)
-    time.sleep(0.005)
+    # time.sleep(0.005)
 
 end = pf()
 print(f"Elapsed: {ansi['bright_black']}{end - start}{ansi['reset']}")
