@@ -33,7 +33,8 @@ for epoch in range(1, max_epoch + 1):
         c_time = time.perf_counter()
         elapsed = c_time - it_start
         t_desc = (
-            f"{ansi['reset']}{str(it).zfill(len(str(max_it)))}{ansi['bright_black']}/{ansi['reset']}{max_it}{ansi['bright_black']}iter  "
+            f"{ansi['reset']}{str(it).zfill(len(str(max_it)))}{ansi['bright_black']}/"
+            f"{ansi['reset']}{max_it}{ansi['bright_black']}iter  "
             f"{ansi['reset']}{(100 * it / max_it):05.1f}{ansi['bright_black']}%  "
             f"{ansi['reset']}{loss.array.item():.3}{ansi['bright_black']}loss  "
             f"{ansi['reset']}{round(it / elapsed, 1)}{ansi['bright_black']}{ansi['bright_black']}iter/s  "
