@@ -15,6 +15,7 @@ max_epoch = 10
 report_gap = 5
 max_it = 100
 running_loss = 0.0
+accu = 100.0
 
 print_contributors(who=['programmers', 'artists'])
 sys.stdout.write(f"\n{ansi['reset']}{ansi['bold']}Training{ansi['reset']}\n")
@@ -39,11 +40,11 @@ for epoch in range(1, max_epoch + 1):
             f"{ansi['reset']}{convert_time(elapsed)}{ansi['bright_black']}et  "
             f"{ansi['reset']}{convert_time(elapsed * max_it / it - elapsed)}{ansi['bright_black']}eta{ansi['reset']}"
         )
-        progress(it - 1, max_it, desc=t_desc, bar_type=0)
+        progress(it - 1, max_it, b_len=75, desc=t_desc, bar_type=0)
         # housekeeping
         running_loss += loss.array.item()
         zero_grad(x, w, y)
-        time.sleep(0.005)
+        # time.sleep(0.005)
     if epoch % report_gap == 0 and epoch != max_epoch:
         running_loss /= report_gap * max_it
         sys.stdout.write(
@@ -51,8 +52,8 @@ for epoch in range(1, max_epoch + 1):
             f"{ansi['reset']}{ansi['bright_black']}/"
             f"{ansi['reset']}{max_epoch}"
             f"{ansi['reset']}{ansi['bright_black']}epochs  "
-            f"{ansi['reset']}{running_loss:.3}{ansi['bright_black']}loss  "
-            f"{ansi['reset']}{1}{ansi['bright_black']}%accuracy\n"
+            f"{ansi['reset']}{running_loss:.10}{ansi['bright_black']}loss  "
+            f"{ansi['reset']}{accu:.10}{ansi['bright_black']}%accuracy\n"
         )
         sys.stdout.flush()
         running_loss = 0.0
