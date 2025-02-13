@@ -8,6 +8,8 @@ Contains:
 from typing import Union, Generator, Tuple
 import numpy as np
 
+from ..functional.objects import Tensor
+
 
 class DataLoader:
     def __init__(
@@ -31,11 +33,6 @@ class DataLoader:
         if not isinstance(batch_size, int) or batch_size < 0:
             raise TypeError("Attempted DataLoader creation with batch size that wasn't a positive integer.")
 
-        assert isinstance(data, np.ndarray), "'data' must be an array"
-        assert isinstance(labels, np.ndarray), "'labels' must be an array"
-        assert data.shape[0] == labels.shape[0], "'data' and 'labels' must have the same first dimension"
-        assert isinstance(batch_size, int) and batch_size > 0, "'batch_size' must be a positive integer"
-
         # internals
         self._data = data
         self._labels = labels
@@ -56,7 +53,7 @@ class DataLoader:
         # length
         return (self._data.shape[0] + self._batch_size - 1) // self._batch_size
 
-    def __iter__(self) -> Generator[Tuple[np.ndarray, np.ndarray], None, None]:
+    def __iter__(self) -> Generator[Tuple[Tensor, Tensor], None, None]:
         if self._shuffle:
             # shuffle dataloader
             np.random.shuffle(self._indices)

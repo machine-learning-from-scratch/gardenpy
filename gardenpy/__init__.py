@@ -30,7 +30,10 @@ from .models import (
     DNN,
     CNN
 )
-from .utils import progress
+from .utils import (
+    progress,
+    DataLoader
+)
 
 # metadata
 __version__ = '0.4.2'
@@ -54,5 +57,6 @@ __all__ = [
     'Optimizers',
     'DNN',
     'CNN',
-    'progress'
+    'progress',
+    'DataLoader'
 ]
