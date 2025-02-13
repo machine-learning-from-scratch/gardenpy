@@ -28,9 +28,9 @@ class SimpleModel:
         self.a_1 = self._act(x @ self.w_1 + self.b_1)
         self.a_2 = self._act(self.a_1 @ self.w_2 + self.b_2)
         self.yhat = self._act(self.a_2 @ self.w_3 + self.b_3)
-        return yhat
+        return self.yhat
 
-    def optim(self):
+    # def optim(self):
 
 
 

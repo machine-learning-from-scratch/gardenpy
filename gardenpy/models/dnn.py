@@ -5,16 +5,141 @@ Contains:
     - :class:`DNN`
 """
 
+from typing import Optional, List, Tuple
+import numpy as np
+
 from ..functional.objects import Tensor
+from ..functional.algorithms import (
+    Initializers,
+    Activators,
+    Losses,
+    Optimizers
+)
+from ..functional.operators import(
+    zero_grad,
+    nabla,
+    chain
+)
 from ._nn import BaseNN
 
 
-class DNN(BaseNN):
+class DNN:
     def __init__(self, layers, *, status: bool = False, ikwiad: bool = False):
-        super().__init__(status=status, ikwiad=ikwiad)
+        # user settings
+        layers = np.array(layers)
+        if not (np.issubdtype(layers.dtype, np.int_) and len(layers.shape) == 1):
+            raise TypeError("Attempted DNN creation with invalid layers.")
+        self._layers = list(layers)
+        self._status = bool(status)
+        self._ikwiad = bool(ikwiad)
+        # default settings
+        self._w_init = Initializers('xavier')
+        self._b_init = Initializers('uniform', kappa=0.0)
+        self._activators = [Activators('lrelu', beta=0.1)] * len(layers - 1) + [Activators('softmax')]
+        self._criterion = Losses('centropy')
+        self._optim = Optimizers('adam')
+        # parameters
+        self._theta_w = None
+        self._theta_b = None
+        # steps
+        self._vals: Optional[List[dict]] = None
 
-    def _forward(self, x: Tensor, y: Tensor):
-        ...
+    ####################################################################################################################
+
+    @property
+    def ikwiad(self) -> bool:
+        return self._ikwiad
+
+    @property
+    def status(self) -> bool:
+        return self._status
+
+    @property
+    def initializers(self) -> Tuple[Initializers, Initializers]:
+        return self._w_init, self._b_init
+
+    @property
+    def activators(self) -> List[Activators]:
+        return self._activators
+
+    @property
+    def criterion(self) -> Losses:
+        return self._criterion
+
+    @property
+    def optimizer(self) -> Optimizers:
+        return self._optim
+
+    @property
+    def thetas(self) -> Tuple[Tensor, Tensor]:
+        return self._theta_w, self._theta_b
+
+    ####################################################################################################################
+
+    @ikwiad.setter
+    def ikwiad(self, ikwiad: bool):
+        self._ikwiad = bool(ikwiad)
+
+    @status.setter
+    def status(self, status: bool):
+        self._status = bool(status)
+
+    @criterion.setter
+    def criterion(self, criterion: Losses):
+        if not isinstance(criterion, Losses):
+            raise TypeError("Attempted criterion setting with an object that wasn't an criterion.")
+        self._criterion = criterion
+
+    @optimizer.setter
+    def optimizer(self, optimizer: Optimizers):
+        if not isinstance(optimizer, Optimizers):
+            raise TypeError("Attempted optimizer setting with an object that wasn't an optimizer.")
+        self._optim = optimizer
+
+    ####################################################################################################################
+
+    def _step(self, x: Tensor, y: Tensor) -> None:
+        self._forward(x=x)
+        self._vals[0].update({'y': y})
+        self._evaluate(yhat=self._vals[-1]['gamma'], y=self._vals[0]['y'])
+        self._backward()
+        return None
+
+    def _forward(self, x: Tensor) -> Tensor:
+        self._vals = []
+        self._vals.append({'gamma': x})
+        for g, w, b in zip(self._activators, self._theta_w, self._theta_b):
+            alpha = self._vals[-1]['gamma'] @ w
+            beta = alpha + b
+            gamma = g(beta)
+            self._vals.append({'alpha': alpha, 'beta': beta, 'gamma': gamma})
+        return self._vals[-1]['gamma']
+
+    def _evaluate(self, yhat: Tensor, y: Tensor) -> Tensor:
+        loss = self._criterion(yhat, y)
+        self._vals.append({'loss': loss})
+        return loss
+
+    def _backward(self) -> None:
+        d_loss = nabla(self._vals[-2]['gamma'], self._vals[-1]['loss'])
+        for a, w, b in zip(self._vals[-2::-1], self._theta_w[::-1], self._theta_b[::-1]):
+            d_gamma_loss = nabla()
+
+    ####################################################################################################################
+
+    def forward(self, x: Tensor) -> Tensor:
+        out = self._forward(x=x)
+        self._vals = []
+        zero_grad(out)
+        return out
+
+
+# class DNN(BaseNN):
+#     def __init__(self, layers, *, status: bool = False, ikwiad: bool = False):
+#         super().__init__(status=status, ikwiad=ikwiad)
+#
+#     def _forward(self, x: Tensor, y: Tensor):
+#         ...
 
 
 

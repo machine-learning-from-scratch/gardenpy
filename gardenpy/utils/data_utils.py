@@ -34,8 +34,8 @@ class DataLoader:
             raise TypeError("Attempted DataLoader creation with batch size that wasn't a positive integer.")
 
         # internals
-        self._data = data
-        self._labels = labels
+        self._data = [Tensor(pt) for pt in data]
+        self._labels = [Tensor(pt) for pt in labels]
         self._batch_size = batch_size
         self._shuffle = bool(shuffle)
         self._indices = np.arange(data.shape[0])
@@ -51,7 +51,7 @@ class DataLoader:
 
     def __len__(self) -> int:
         # length
-        return (self._data.shape[0] + self._batch_size - 1) // self._batch_size
+        return (len(self._data) + self._batch_size - 1) // self._batch_size
 
     def __iter__(self) -> Generator[Tuple[Tensor, Tensor], None, None]:
         if self._shuffle:
