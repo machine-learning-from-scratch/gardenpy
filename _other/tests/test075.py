@@ -45,7 +45,7 @@ for epoch in range(1, max_epoch + 1):
         # housekeeping
         running_loss += loss.array.item()
         zero_grad(x, w, y)
-        # time.sleep(0.005)
+        time.sleep(0.005)
     if epoch % report_gap == 0 and epoch != max_epoch:
         running_loss /= report_gap * max_it
         sys.stdout.write(
