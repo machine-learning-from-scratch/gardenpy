@@ -35,7 +35,7 @@ class DNN:
         # default settings
         self._w_init = Initializers('xavier')
         self._b_init = Initializers('uniform', kappa=0.0)
-        self._activators = [Activators('lrelu', beta=0.1)] * len(layers - 1) + [Activators('softmax')]
+        self._activators = [Activators('lrelu', beta=0.1)] * (len(layers) - 1) + [Activators('softmax')]
         self._criterion = Losses('centropy')
         self._optim = Optimizers('adam')
         # parameters
@@ -123,7 +123,8 @@ class DNN:
     def _backward(self) -> None:
         d_loss = nabla(self._vals[-2]['gamma'], self._vals[-1]['loss'])
         for a, w, b in zip(self._vals[-2::-1], self._theta_w[::-1], self._theta_b[::-1]):
-            d_gamma_loss = nabla()
+            d_b_gamma = nabla(b, a['gamma'])
+            d_b_loss = chain(a['gamma'], ...)
 
     ####################################################################################################################
 

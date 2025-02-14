@@ -17,8 +17,8 @@ max_it = 100
 running_loss = 0.0
 accu = 100.0
 
-print_contributors(who=['programmers', 'artists'])
-sys.stdout.write(f"\n{ansi['reset']}{ansi['bold']}Training{ansi['reset']}\n")
+# print_contributors(who=['programmers', 'artists'])
+sys.stdout.write(f"{ansi['reset']}{ansi['bold']}Training{ansi['reset']}\n")
 sys.stdout.flush()
 glob_start = time.perf_counter()
 for epoch in range(1, max_epoch + 1):
@@ -41,7 +41,7 @@ for epoch in range(1, max_epoch + 1):
             f"{ansi['reset']}{convert_time(elapsed)}{ansi['bright_black']}et  "
             f"{ansi['reset']}{convert_time(elapsed * max_it / it - elapsed)}{ansi['bright_black']}eta{ansi['reset']}"
         )
-        progress(it - 1, max_it, b_len=75, desc=t_desc, bar_type=0)
+        progress(it - 1, max_it, b_len=75, desc=t_desc, bar_type=1)
         # housekeeping
         running_loss += loss.array.item()
         zero_grad(x, w, y)

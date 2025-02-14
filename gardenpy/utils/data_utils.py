@@ -8,7 +8,7 @@ Contains:
 from typing import Union, Generator, Tuple
 import numpy as np
 
-from ..functional.objects import Tensor
+# from ..functional.objects import Tensor  # this breaks?
 
 
 class DataLoader:
@@ -34,8 +34,8 @@ class DataLoader:
             raise TypeError("Attempted DataLoader creation with batch size that wasn't a positive integer.")
 
         # internals
-        self._data = [Tensor(pt) for pt in data]
-        self._labels = [Tensor(pt) for pt in labels]
+        self._data = [np.array(pt) for pt in data]
+        self._labels = [np.array(pt) for pt in labels]
         self._batch_size = batch_size
         self._shuffle = bool(shuffle)
         self._indices = np.arange(data.shape[0])
@@ -53,7 +53,7 @@ class DataLoader:
         # length
         return (len(self._data) + self._batch_size - 1) // self._batch_size
 
-    def __iter__(self) -> Generator[Tuple[Tensor, Tensor], None, None]:
+    def __iter__(self) -> Generator[Tuple[np.ndarray, np.ndarray], None, None]:
         if self._shuffle:
             # shuffle dataloader
             np.random.shuffle(self._indices)

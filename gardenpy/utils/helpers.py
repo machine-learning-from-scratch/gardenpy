@@ -43,7 +43,7 @@ ansi = {
     }
 
 
-def progress(idx: int, max_idx: int, *, desc: Optional[str] = None, b_len: int = 50, bar_type: int = 0) -> None:
+def progress(idx: int, max_idx: int, *, desc: Optional[str] = None, b_len: int = 50, b_type: int = 0) -> None:
     r"""
     **Customizable progress bar.**
 
@@ -52,13 +52,13 @@ def progress(idx: int, max_idx: int, *, desc: Optional[str] = None, b_len: int =
         max_idx (int), 0 < max_idx: Maximum loop index.
         desc (str, optional), default = None: Progress bar description.
         b_len (int), default = 50, 0 < b_len: Bar length.
-        bar_type (int), default = 0: Visual bar type.
+        b_type (int), default = 0: Visual bar type.
 
     Raises:
         TypeError: If parameters are of the wrong type.
     """
     # check for errors
-    if not (isinstance(idx, int) and 0 <= idx):
+    if not (isinstance(idx, int) and -1 <= idx):
         raise TypeError("Referenced loop index must be a positive integer.")
     if not (isinstance(max_idx, int) and 0 < max_idx):
         raise TypeError("Maximum loop index must be a positive integer.")
@@ -67,14 +67,14 @@ def progress(idx: int, max_idx: int, *, desc: Optional[str] = None, b_len: int =
     # completed progress
     completed = (idx + 1) / max_idx
     # make progress bar
-    if bar_type == 0:
+    if b_type == 0:
         sys.stdout.write(
             f"\r{ansi['reset']}"
             f"[{ansi['green']}{'—' * int(b_len * completed)}"
             f"{ansi['red']}{'—' * (b_len - int(b_len * completed))}"
             f"{ansi['reset']}]  {desc or ''}"
         )
-    elif bar_type == 1:
+    elif b_type == 1:
         sys.stdout.write(
             f"\r{ansi['bright_black']}"
             f"[{ansi['reset']}{'—' * int(b_len * completed)}"

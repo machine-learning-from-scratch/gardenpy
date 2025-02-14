@@ -273,7 +273,7 @@ class Activators:
             'lrelu': Params(
                 default={'beta': 1e-02},
                 dtypes={'beta': (float, int)},
-                vtypes={'beta': lambda x: x < 0},
+                vtypes={'beta': lambda x: 0 < x},
                 ctypes={'beta': lambda x: float(x)}
             ),
             'sigmoid': Params(
@@ -285,13 +285,13 @@ class Activators:
             'softplus': Params(
                 default={'beta': 1.0},
                 dtypes={'beta': (float, int)},
-                vtypes={'beta': lambda x: x < 0},
+                vtypes={'beta': lambda x: 0 < x},
                 ctypes={'beta': lambda x: float(x)}
             ),
             'mish': Params(
                 default={'beta': 1.0},
                 dtypes={'beta': (float, int)},
-                vtypes={'beta': lambda x: x < 0},
+                vtypes={'beta': lambda x: 0 < x},
                 ctypes={'beta': lambda x: float(x)}
             )
         }
