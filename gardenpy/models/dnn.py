@@ -35,7 +35,7 @@ class DNN:
         # default settings
         self._w_init = Initializers('xavier')
         self._b_init = Initializers('uniform', kappa=0.0)
-        self._activators = [Activators('lrelu', beta=0.1)] * (len(layers) - 1) + [Activators('softmax')]
+        self._activators = [Activators('lrelu', beta=0.1)] * len(layers[:-1]) + [Activators('softmax')]
         self._criterion = Losses('centropy')
         self._optim = Optimizers('adam')
         # parameters
