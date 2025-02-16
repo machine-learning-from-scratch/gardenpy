@@ -479,10 +479,13 @@ class Tensor:
             Returns:
                 np.ndarray: Result.
             """
-            raise NotImplementedError(
-                "Attempted function call without redefinition in subclass.\n"
-                "Either define this call, or avoid referencing it."
-            )
+            try:
+                return down @ up
+            except ValueError:
+                try:
+                    return down * up
+                except ValueError:
+                    return np.sum(down.T * up, axis=1)
 
     class LoneTensorMethod(_TensorMethod):
         r"""
@@ -627,10 +630,13 @@ class Tensor:
             Returns:
                 np.ndarray: Result.
             """
-            raise NotImplementedError(
-                "Attempted function call without redefinition in subclass.\n"
-                "Either define this call, or avoid referencing it."
-            )
+            try:
+                return down @ up
+            except ValueError:
+                try:
+                    return down * up
+                except ValueError:
+                    return np.sum(down.T * up, axis=1)
 
         def main(self, main: 'Tensor', other: Union['Tensor', np.ndarray, float, int]) -> 'Tensor':
             r"""
@@ -933,7 +939,10 @@ class Tensor:
             try:
                 return down @ up
             except ValueError:
-                return down * up
+                try:
+                    return down * up
+                except ValueError:
+                    return np.sum(down.T * up, axis=1)
 
     class _Pow(PairedTensorMethod):
         # hadamard power
@@ -957,14 +966,20 @@ class Tensor:
             try:
                 return down @ up
             except ValueError:
-                return down * up
+                try:
+                    return down * up
+                except ValueError:
+                    return np.sum(down.T * up, axis=1)
 
         @staticmethod
         def chain_o(down: np.ndarray, up: np.ndarray) -> np.ndarray:
             try:
                 return down @ up
             except ValueError:
-                return down * up
+                try:
+                    return down * up
+                except ValueError:
+                    return np.sum(down.T * up, axis=1)
 
     class _Mul(PairedTensorMethod):
         # hadamard multiplication
@@ -988,14 +1003,20 @@ class Tensor:
             try:
                 return down @ up
             except ValueError:
-                return down * up
+                try:
+                    return down * up
+                except ValueError:
+                    return np.sum(down.T * up, axis=1)
 
         @staticmethod
         def chain_o(down: np.ndarray, up: np.ndarray) -> np.ndarray:
             try:
                 return down @ up
             except ValueError:
-                return down * up
+                try:
+                    return down * up
+                except ValueError:
+                    return np.sum(down.T * up, axis=1)
 
     class _TrueDiv(PairedTensorMethod):
         # hadamard division
@@ -1019,14 +1040,20 @@ class Tensor:
             try:
                 return down @ up
             except ValueError:
-                return down * up
+                try:
+                    return down * up
+                except ValueError:
+                    return np.sum(down.T * up, axis=1)
 
         @staticmethod
         def chain_o(down: np.ndarray, up: np.ndarray) -> np.ndarray:
             try:
                 return down @ up
             except ValueError:
-                return down * up
+                try:
+                    return down * up
+                except ValueError:
+                    return np.sum(down.T * up, axis=1)
 
     class _Add(PairedTensorMethod):
         # addition
@@ -1060,7 +1087,10 @@ class Tensor:
             try:
                 return down @ up
             except ValueError:
-                return down * up
+                try:
+                    return down * up
+                except ValueError:
+                    return np.sum(down.T * up, axis=1)
 
     class _Sub(PairedTensorMethod):
         # subtraction
@@ -1084,14 +1114,20 @@ class Tensor:
             try:
                 return down @ up
             except ValueError:
-                return down * up
+                try:
+                    return down * up
+                except ValueError:
+                    return np.sum(down.T * up, axis=1)
 
         @staticmethod
         def chain_o(down: np.ndarray, up: np.ndarray) -> np.ndarray:
             try:
                 return down @ up
             except ValueError:
-                return down * up
+                try:
+                    return down * up
+                except ValueError:
+                    return np.sum(down.T * up, axis=1)
 
     # internal instance
     _matmul = _MatMul()

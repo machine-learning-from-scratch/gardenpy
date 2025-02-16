@@ -354,7 +354,10 @@ class Activators:
                 try:
                     return down @ up
                 except ValueError:
-                    return down * up
+                    try:
+                        return down * up
+                    except ValueError:
+                        return np.sum(down.T * up, axis=1)
 
         class _LeakyReLU(Tensor.LoneTensorMethod):
             # leaky relu
@@ -374,7 +377,10 @@ class Activators:
                 try:
                     return down @ up
                 except ValueError:
-                    return down * up
+                    try:
+                        return down * up
+                    except ValueError:
+                        return np.sum(down.T * up, axis=1)
 
         class _Sigmoid(Tensor.LoneTensorMethod):
             # sigmoid
@@ -394,7 +400,10 @@ class Activators:
                 try:
                     return down @ up
                 except ValueError:
-                    return down * up
+                    try:
+                        return down * up
+                    except ValueError:
+                        return np.sum(down.T * up, axis=1)
 
         class _Tanh(Tensor.LoneTensorMethod):
             # tanh
@@ -414,7 +423,10 @@ class Activators:
                 try:
                     return down @ up
                 except ValueError:
-                    return down * up
+                    try:
+                        return down * up
+                    except ValueError:
+                        return np.sum(down.T * up, axis=1)
 
         class _Softplus(Tensor.LoneTensorMethod):
             # softplus
@@ -434,7 +446,10 @@ class Activators:
                 try:
                     return down @ up
                 except ValueError:
-                    return down * up
+                    try:
+                        return down * up
+                    except ValueError:
+                        return np.sum(down.T * up, axis=1)
 
         class _Mish(Tensor.LoneTensorMethod):
             # mish
@@ -458,7 +473,10 @@ class Activators:
                 try:
                     return down @ up
                 except ValueError:
-                    return down * up
+                    try:
+                        return down * up
+                    except ValueError:
+                        return np.sum(down.T * up, axis=1)
 
         # operator reference
         ops = {
@@ -647,7 +665,10 @@ class Losses:
                 try:
                     return down @ up
                 except ValueError:
-                    return down * up
+                    try:
+                        return down * up
+                    except ValueError:
+                        return np.sum(down.T * up, axis=1)
 
         class _SumOfSquaredResiduals(Tensor.PairedTensorMethod):
             # ssr
@@ -667,7 +688,10 @@ class Losses:
                 try:
                     return down @ up
                 except ValueError:
-                    return down * up
+                    try:
+                        return down * up
+                    except ValueError:
+                        return np.sum(down.T * up, axis=1)
 
         class _SumOfAbsoluteValueResiduals(Tensor.PairedTensorMethod):
             # savr
@@ -687,7 +711,10 @@ class Losses:
                 try:
                     return down @ up
                 except ValueError:
-                    return down * up
+                    try:
+                        return down * up
+                    except ValueError:
+                        return np.sum(down.T * up, axis=1)
 
         # operator reference
         ops = {
