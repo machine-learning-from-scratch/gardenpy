@@ -1,8 +1,8 @@
 import gardenpy as gp
 
 init = gp.Initializers('gaussian')
-g_0 = gp.Activators('relu')
-g_1 = gp.Activators('sigmoid')
+g0 = gp.Activators('relu')
+g1 = gp.Activators('sigmoid')
 criterion = gp.Losses('ssr')
 
 x = init(1, 20)
@@ -13,8 +13,8 @@ b0 = init(1, 10)
 w1 = init(10, 5)
 b1 = init(1, 5)
 
-a1 = g_0(x @ w0 + b0)
-yhat = g_1(a1 @ w1 + b1)
+a1 = g0(x @ w0 + b0)
+yhat = g1(a1 @ w1 + b1)
 loss = criterion(yhat, y)
 
 grad_b1_loss = gp.nabla(b1, loss)

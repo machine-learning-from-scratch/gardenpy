@@ -1,27 +1,31 @@
 r"""
 Example training script (checkered or non-checkered).
-Cross-Entropy
+Cross Entropy
 """
 
 import gardenpy as gp
+
+########################################################################################################################
 
 # training parameters
 epochs = 10_000
 
 # parameters
-w1 = gp.Initializers('xavier')(2, 4)
+w1 = gp.Initializers('xavier')(2,4)
 b1 = gp.Initializers('uniform', kappa=0.0)(1, 4)
 w2 = gp.Initializers('xavier')(4, 2)
 b2 = gp.Initializers('uniform', kappa=0.0)(1, 2)
 # hyperparameters
 g = gp.Activators('lrelu', beta=0.1)
-g_l = gp.Activators('softmax')
+gl = gp.Activators('softmax')
 criterion = gp.Losses('centropy')
-optim = gp.Optimizers('adam', alpha=1e-02)
+optim = gp.Optimizers('rmsp', alpha=1e-02)
 
 # data
 data = [[[0, 0]], [[0, 1]], [[1, 0]], [[1, 1]]]
-labels = [[[0, 1]], [[1, 0]], [[1, 0]], [[1, 1]]]
+labels = [[[0, 1]], [[1, 0]], [[1, 0]], [[0, 1]]]
+
+########################################################################################################################
 
 # training
 accu_loss = 0.0
@@ -33,7 +37,7 @@ for epoch in range(1, epochs + 1):
         y = gp.tensor(y)
         # forward pass
         a1 = g(x @ w1 + b1)
-        yhat = g_l(a1 @ w2 + b2)
+        yhat = gl(a1 @ w2 + b2)
         loss = criterion(yhat=yhat, y=y)
         # backward pass
         d_yhat = gp.nabla(yhat, loss)
@@ -54,3 +58,21 @@ for epoch in range(1, epochs + 1):
     # progress bar
     gp.progress(epoch - 1, epochs, b_len=100, b_type=2, desc=f"{accu_loss:.10f}")
     accu_loss = 0
+
+########################################################################################################################
+
+# outcome list
+outcomes = []
+
+for x, y in zip(data, labels):
+    # tensor conversion
+    x = gp.tensor(x)
+    y = gp.tensor(y)
+    # forward pass
+    a1 = g(x @ w1 + b1)
+    yhat = g(a1 @ w2 + b2)
+    outcomes.append([yhat, y])
+
+for outcome in outcomes:
+    # print outcomes
+    print(f"predicted: {str(outcome[0])[1:-1]}  expected: {str(outcome[1])[1:-1]}")
