@@ -41,7 +41,7 @@ for epoch in range(1, max_epoch + 1):
             f"{ansi['reset']}{convert_time(elapsed)}{ansi['bright_black']}et  "
             f"{ansi['reset']}{convert_time(elapsed * max_it / it - elapsed)}{ansi['bright_black']}eta{ansi['reset']}"
         )
-        progress(it - 1, max_it, b_len=75, desc=t_desc, bar_type=1)
+        progress(it - 1, max_it, b_len=75, desc=t_desc, b_type=1)
         # housekeeping
         running_loss += loss.array.item()
         zero_grad(x, w, y)
