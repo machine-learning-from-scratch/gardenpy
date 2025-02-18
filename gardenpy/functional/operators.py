@@ -3,10 +3,16 @@ r"""
 
 Contains:
     - :func:`tensor`
-    - :func:`replace`
-    - :func:`zero_grad`
+    - :func:`matmul`
+    - :func:`power`
+    - :func:`multiply`
+    - :func:`divide`
+    - :func:`add`
+    - :func:`subtract`
     - :func:`nabla`
     - :func:`chain`
+    - :func:`zero_grad`
+    - :func:`replace`
 """
 
 from typing import Union
@@ -18,6 +24,36 @@ from .objects import Tensor
 @wraps(wrapped=Tensor.__init__)
 def tensor(obj: any) -> Tensor:
     return Tensor(obj=obj)
+
+
+@wraps(wrapped=Tensor.__matmul__)
+def matmul(main: Tensor, other: Tensor) -> Tensor:
+    return main @ other
+
+
+@wraps(wrapped=Tensor.__pow__)
+def power(main: Tensor, other: Tensor) -> Tensor:
+    return main ** other
+
+
+@wraps(wrapped=Tensor.__mul__)
+def multiply(main: Tensor, other: Tensor) -> Tensor:
+    return main * other
+
+
+@wraps(wrapped=Tensor.__truediv__)
+def divide(main: Tensor, other: Tensor) -> Tensor:
+    return main / other
+
+
+@wraps(wrapped=Tensor.__add__)
+def add(main: Tensor, other: Tensor) -> Tensor:
+    return main + other
+
+
+@wraps(wrapped=Tensor.__sub__)
+def subtract(main: Tensor, other: Tensor) -> Tensor:
+    return main - other
 
 
 @wraps(wrapped=Tensor.nabla)
