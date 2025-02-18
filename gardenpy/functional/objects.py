@@ -79,7 +79,7 @@ class Tensor:
         self._is_valid_tensor(itm=self)
         return str(self._tensor)
 
-    ####################################################################################################################
+########################################################################################################################
 
     @property
     def id(self) -> Union[str, None]:
@@ -205,7 +205,7 @@ class Tensor:
         """
         self._tags.append(str(itm))
 
-    ####################################################################################################################
+########################################################################################################################
 
     def instance_grad_reset(self) -> None:
         r"""
@@ -257,7 +257,7 @@ class Tensor:
             return None
         return Tensor(self._tensor)
 
-    ####################################################################################################################
+########################################################################################################################
 
     @classmethod
     def instances(cls) -> List[str]:
@@ -385,7 +385,7 @@ class Tensor:
         """
         cls._ikwiad = bool(ikwiad)
 
-    ####################################################################################################################
+########################################################################################################################
 
     @staticmethod
     def _is_valid_tensor(itm: 'Tensor') -> bool:
@@ -458,7 +458,7 @@ class Tensor:
             itm._id = open_id
         return None
 
-    ####################################################################################################################
+########################################################################################################################
 
     class _TensorMethod:
         r"""
@@ -688,7 +688,7 @@ class Tensor:
             # return result
             return result
 
-    ####################################################################################################################
+########################################################################################################################
 
     @staticmethod
     def nabla(grad: 'Tensor', wrt: 'Tensor', *, binary: bool = True) -> 'Tensor':
@@ -904,7 +904,7 @@ class Tensor:
             # no relation
             raise TrackingError(grad=down, wrt=up)
 
-    ####################################################################################################################
+########################################################################################################################
 
     class _MatMul(PairedTensorMethod):
         # matrix multiplication
@@ -924,26 +924,6 @@ class Tensor:
         def backward_o(other: np.ndarray, main: np.ndarray) -> np.ndarray:
             return main.T * (0.0 * other + 1.0)
 
-        @staticmethod
-        def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-            try:
-                return down @ up
-            except ValueError:
-                try:
-                    return down * up
-                except ValueError:
-                    return np.sum(down.T * up, axis=1)
-
-        @staticmethod
-        def chain_o(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-            try:
-                return down @ up
-            except ValueError:
-                try:
-                    return down * up
-                except ValueError:
-                    return np.sum(down.T * up, axis=1)
-
     class _Pow(PairedTensorMethod):
         # hadamard power
         def __init__(self):
@@ -956,30 +936,6 @@ class Tensor:
         @staticmethod
         def backward(main: np.ndarray, other: np.ndarray) -> np.ndarray:
             return other * (main ** (other - 1))
-
-        @staticmethod
-        def backward_o(other: np.ndarray, main: np.ndarray) -> np.ndarray:
-            return np.log(main) * (main ** other)
-
-        @staticmethod
-        def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-            try:
-                return down @ up
-            except ValueError:
-                try:
-                    return down * up
-                except ValueError:
-                    return np.sum(down.T * up, axis=1)
-
-        @staticmethod
-        def chain_o(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-            try:
-                return down @ up
-            except ValueError:
-                try:
-                    return down * up
-                except ValueError:
-                    return np.sum(down.T * up, axis=1)
 
     class _Mul(PairedTensorMethod):
         # hadamard multiplication
@@ -998,26 +954,6 @@ class Tensor:
         def backward_o(other: np.ndarray, main: np.ndarray) -> np.ndarray:
             return main * (other * 0.0 + 1.0)
 
-        @staticmethod
-        def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-            try:
-                return down @ up
-            except ValueError:
-                try:
-                    return down * up
-                except ValueError:
-                    return np.sum(down.T * up, axis=1)
-
-        @staticmethod
-        def chain_o(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-            try:
-                return down @ up
-            except ValueError:
-                try:
-                    return down * up
-                except ValueError:
-                    return np.sum(down.T * up, axis=1)
-
     class _TrueDiv(PairedTensorMethod):
         # hadamard division
         def __init__(self):
@@ -1034,26 +970,6 @@ class Tensor:
         @staticmethod
         def backward_o(other: np.ndarray, main: np.ndarray) -> np.ndarray:
             return (other * 0.0 + 1.0) / main
-
-        @staticmethod
-        def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-            try:
-                return down @ up
-            except ValueError:
-                try:
-                    return down * up
-                except ValueError:
-                    return np.sum(down.T * up, axis=1)
-
-        @staticmethod
-        def chain_o(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-            try:
-                return down @ up
-            except ValueError:
-                try:
-                    return down * up
-                except ValueError:
-                    return np.sum(down.T * up, axis=1)
 
     class _Add(PairedTensorMethod):
         # addition
@@ -1072,26 +988,6 @@ class Tensor:
         def backward_o(other: np.ndarray, main: np.ndarray) -> np.ndarray:
             return other * 0.0 + 1.0
 
-        @staticmethod
-        def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-            try:
-                return down @ up
-            except ValueError:
-                try:
-                    return down * up
-                except ValueError:
-                    return np.array([np.sum(down * up.T, axis=1)])
-
-        @staticmethod
-        def chain_o(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-            try:
-                return down @ up
-            except ValueError:
-                try:
-                    return down * up
-                except ValueError:
-                    return np.sum(down.T * up, axis=1)
-
     class _Sub(PairedTensorMethod):
         # subtraction
         def __init__(self):
@@ -1109,26 +1005,6 @@ class Tensor:
         def backward_o(other: np.ndarray, main: np.ndarray) -> np.ndarray:
             return other * 0.0 - 1.0
 
-        @staticmethod
-        def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-            try:
-                return down @ up
-            except ValueError:
-                try:
-                    return down * up
-                except ValueError:
-                    return np.sum(down.T * up, axis=1)
-
-        @staticmethod
-        def chain_o(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-            try:
-                return down @ up
-            except ValueError:
-                try:
-                    return down * up
-                except ValueError:
-                    return np.sum(down.T * up, axis=1)
-
     # internal instance
     _matmul = _MatMul()
     _pow = _Pow()
@@ -1137,6 +1013,7 @@ class Tensor:
     _add = _Add()
     _sub = _Sub()
 
+    # dunder
     def __matmul__(self, other: Union['Tensor', np.ndarray]) -> 'Tensor':
         r"""**Matrix multiplication.**"""
         return self._matmul.main(self, other)

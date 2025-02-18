@@ -177,6 +177,9 @@ class Initializers:
         return self._init(*args)
 
 
+########################################################################################################################
+
+
 class Activators:
     r"""
     **Activation algorithms for arrays.**
@@ -349,16 +352,6 @@ class Activators:
             def backward(x: np.ndarray) -> np.ndarray:
                 return np.where(x > 0.0, 1.0, 0.0)
 
-            @staticmethod
-            def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-                try:
-                    return down @ up
-                except ValueError:
-                    try:
-                        return down * up
-                    except ValueError:
-                        return np.sum(down.T * up, axis=1)
-
         class _LeakyReLU(Tensor.LoneTensorMethod):
             # leaky relu
             def __init__(self):
@@ -371,16 +364,6 @@ class Activators:
             @staticmethod
             def backward(x: np.ndarray) -> np.ndarray:
                 return np.where(x > 0.0, 1.0, h['beta'])
-
-            @staticmethod
-            def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-                try:
-                    return down @ up
-                except ValueError:
-                    try:
-                        return down * up
-                    except ValueError:
-                        return np.sum(down.T * up, axis=1)
 
         class _Sigmoid(Tensor.LoneTensorMethod):
             # sigmoid
@@ -395,16 +378,6 @@ class Activators:
             def backward(x: np.ndarray) -> np.ndarray:
                 return np.exp(-x) / ((np.exp(-x) + 1.0) ** 2.0)
 
-            @staticmethod
-            def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-                try:
-                    return down @ up
-                except ValueError:
-                    try:
-                        return down * up
-                    except ValueError:
-                        return np.sum(down.T * up, axis=1)
-
         class _Tanh(Tensor.LoneTensorMethod):
             # tanh
             def __init__(self):
@@ -418,16 +391,6 @@ class Activators:
             def backward(x: np.ndarray) -> np.ndarray:
                 return np.cosh(x) ** -2.0
 
-            @staticmethod
-            def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-                try:
-                    return down @ up
-                except ValueError:
-                    try:
-                        return down * up
-                    except ValueError:
-                        return np.sum(down.T * up, axis=1)
-
         class _Softplus(Tensor.LoneTensorMethod):
             # softplus
             def __init__(self):
@@ -440,16 +403,6 @@ class Activators:
             @staticmethod
             def backward(x: np.ndarray) -> np.ndarray:
                 return h['beta'] * np.exp(h['beta'] * x) / (h['beta'] * np.exp(h['beta'] * x) + h['beta'])
-
-            @staticmethod
-            def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-                try:
-                    return down @ up
-                except ValueError:
-                    try:
-                        return down * up
-                    except ValueError:
-                        return np.sum(down.T * up, axis=1)
 
         class _Mish(Tensor.LoneTensorMethod):
             # mish
@@ -467,16 +420,6 @@ class Activators:
                     x * (np.cosh(np.log(np.exp(h['beta'] * x) + 1.0) / h['beta']) ** -2.0) *
                     (h['beta'] * np.exp(h['beta'] * x) / (h['beta'] * np.exp(h['beta'] * x) + h['beta']))
                 )
-
-            @staticmethod
-            def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-                try:
-                    return down @ up
-                except ValueError:
-                    try:
-                        return down * up
-                    except ValueError:
-                        return np.sum(down.T * up, axis=1)
 
         # operator reference
         ops = {
@@ -537,6 +480,9 @@ class Activators:
             # x error
             raise TypeError("Attempted derivative activation with an object that wasn't a NumPy array.")
         return self._op.backward(x)
+
+
+########################################################################################################################
 
 
 class Losses:
@@ -660,16 +606,6 @@ class Losses:
             def backward(yhat: np.ndarray, y: np.ndarray) -> np.ndarray:
                 return -y / (yhat + h['epsilon'])
 
-            @staticmethod
-            def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-                try:
-                    return down @ up
-                except ValueError:
-                    try:
-                        return down * up
-                    except ValueError:
-                        return np.sum(down.T * up, axis=1)
-
         class _SumOfSquaredResiduals(Tensor.PairedTensorMethod):
             # ssr
             def __init__(self):
@@ -683,16 +619,6 @@ class Losses:
             def backward(yhat: np.ndarray, y: np.ndarray) -> np.ndarray:
                 return -2.0 * (y - yhat)
 
-            @staticmethod
-            def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-                try:
-                    return down @ up
-                except ValueError:
-                    try:
-                        return down * up
-                    except ValueError:
-                        return np.sum(down.T * up, axis=1)
-
         class _SumOfAbsoluteValueResiduals(Tensor.PairedTensorMethod):
             # savr
             def __init__(self):
@@ -705,16 +631,6 @@ class Losses:
             @staticmethod
             def backward(yhat: np.ndarray, y: np.ndarray) -> np.ndarray:
                 return -np.sign(y - yhat)
-
-            @staticmethod
-            def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-                try:
-                    return down @ up
-                except ValueError:
-                    try:
-                        return down * up
-                    except ValueError:
-                        return np.sum(down.T * up, axis=1)
 
         # operator reference
         ops = {
@@ -779,6 +695,9 @@ class Losses:
             # y error
             raise TypeError("Attempted derivative loss with an expected object that wasn't a NumPy array.")
         return self._op.backward(y, yhat)
+
+
+########################################################################################################################
 
 
 class Optimizers:
