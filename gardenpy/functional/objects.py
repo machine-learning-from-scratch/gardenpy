@@ -196,7 +196,7 @@ class Tensor:
         return self._tags
 
     @tags.setter
-    def tags(self, itm: str) -> None:
+    def tags(self, itm: str):
         r"""
         **Add an item to a Tensor's tags.**
 
@@ -374,6 +374,7 @@ class Tensor:
         cls.reset(*args)
         # reset gradient tracking
         cls.grad_reset()
+        return None
 
     @classmethod
     def ikwiad(cls, ikwiad: bool) -> None:
@@ -384,6 +385,7 @@ class Tensor:
             ikwiad (bool): ikwiad state.
         """
         cls._ikwiad = bool(ikwiad)
+        return None
 
 ########################################################################################################################
 
@@ -415,9 +417,7 @@ class Tensor:
         # attempt hex conversion
         try:
             itm = int(itm, 16)
-        except TypeError:
-            pass
-        except ValueError:
+        except ValueError or TypeError:
             pass
 
         if isinstance(itm, Tensor):
@@ -876,33 +876,32 @@ class Tensor:
         """
         if not isinstance(down, Tensor) or down._type != 'grad':
             raise TypeError(
-                "Attempted chain-rule calculation with down object that was either"
+                "Attempted chain-rule calculation with down object that was either "
                 "not a Tensor or not a gradient subtype."
             )
         if not isinstance(up, Tensor) or up._type != 'grad':
             raise TypeError(
-                "Attempted chain-rule calculation with up object that was either"
+                "Attempted chain-rule calculation with up object that was either "
                 "not a Tensor or not a gradient subtype."
             )
 
         # check relation
         down_relation = down._tracker['rlt'][-1]
         up_relation = up._tracker['org']
-        if down_relation == up_relation:
-            # chain gradients
-            result = Tensor(obj=up._tracker['chn'][0][0](down._tensor, up._tensor), _gradient_override=True)
-            # set gradient internals
-            result._type = 'grad'
-            result._tracker['rlt'] = down._tracker['rlt'] + up._tracker['rlt'][1:]
-            result._tracker['opr'] = down._tracker['opr'] + up._tracker['opr']
-            result._tracker['drv'] = down._tracker['drv'] + up._tracker['drv']
-            result._tracker['chn'] = down._tracker['chn'] + up._tracker['chn']
-            result._tracker['org'] = down._tracker['org']
-            # return final gradient
-            return result
-        else:
-            # no relation
+        if down_relation != up_relation:
             raise TrackingError(grad=down, wrt=up)
+
+        # chain gradients
+        result = Tensor(obj=up._tracker['chn'][0][0](down._tensor, up._tensor), _gradient_override=True)
+        # set gradient internals
+        result._type = 'grad'
+        result._tracker['rlt'] = down._tracker['rlt'] + up._tracker['rlt'][1:]
+        result._tracker['opr'] = down._tracker['opr'] + up._tracker['opr']
+        result._tracker['drv'] = down._tracker['drv'] + up._tracker['drv']
+        result._tracker['chn'] = down._tracker['chn'] + up._tracker['chn']
+        result._tracker['org'] = down._tracker['org']
+        # return final gradient
+        return result
 
 ########################################################################################################################
 
