@@ -327,8 +327,6 @@ class Tensor:
         non_saved = [itm for i, itm in enumerate(cls._instances) if i not in args and itm is not None]
 
         for instance in non_saved:
-            if instance is None:
-                continue
             if instance.type == 'grad':
                 # reset gradients
                 instance.instance_reset()
@@ -538,14 +536,13 @@ class Tensor:
             """
             # check tensor
             if not (isinstance(main, Tensor)) or main._type != 'mat':
-                if not (isinstance(main, Tensor)) or main._type != 'mat':
-                    raise TypeError(
-                        "Attempted call without main object being the right kind of Tensor.\n"
-                        "To call this function, try:\n"
-                        "   Converting the object into a Tensor if it isn't already.\n"
-                        "   Using the .matrix() function to convert a matrix.\n"
-                        "   Creating a blank Tensor using the internal array."
-                    )
+                raise TypeError(
+                    "Attempted call without main object being the right kind of Tensor.\n"
+                    "To call this function, try:\n"
+                    "   Converting the object into a Tensor if it isn't already.\n"
+                    "   Using the .matrix() function to convert a matrix.\n"
+                    "   Creating a blank Tensor using the internal array."
+                )
             # calculate result
             result = Tensor(self.forward(main._tensor))
             result._tracker['org'] = [main, None]
@@ -935,6 +932,10 @@ class Tensor:
         @staticmethod
         def backward(main: np.ndarray, other: np.ndarray) -> np.ndarray:
             return other * (main ** (other - 1))
+
+        @staticmethod
+        def backward_o(other: np.ndarray, main: np.ndarray) -> np.ndarray:
+            return np.log(main) * (main ** other)
 
     class _Mul(PairedTensorMethod):
         # hadamard multiplication
