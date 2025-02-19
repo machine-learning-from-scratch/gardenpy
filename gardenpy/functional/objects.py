@@ -659,6 +659,14 @@ class Tensor:
             # set array
             if isinstance(other, Tensor):
                 arr = other._tensor
+                if other._type != 'mat':
+                    raise TypeError(
+                        "Attempted call without other object being the right kind of Tensor.\n"
+                        "To call this function, try:\n"
+                        "   Converting the object into a Tensor if it isn't already.\n"
+                        "   Using the .matrix() function to convert a matrix.\n"
+                        "   Creating a blank Tensor using the internal array."
+                    )
             else:
                 arr = other
 
@@ -773,7 +781,14 @@ class Tensor:
         _relate(wrt, grad)
         if not relation:
             # no relation
-            raise TrackingError(grad=grad, wrt=wrt)
+            raise TrackingError(grad=grad, wrt=wrt, message=(
+                f"No relation could be found between {grad.id} and {wrt.id}.\n"
+                "This might be due to:\n"
+                "   No clear relation between the Tensors.\n"
+                "   Accidental clearing of trackers.\n"
+                "   Deletion of Tensors.\n"
+                "   Accidental reference to the wrong Tensor."
+            ))
 
         def _derive(down: 'Tensor', up: 'Tensor', _identity: bool = False) -> 'Tensor':
             # get relations
@@ -886,7 +901,14 @@ class Tensor:
         down_relation = down._tracker['rlt'][-1]
         up_relation = up._tracker['org']
         if down_relation != up_relation:
-            raise TrackingError(grad=down, wrt=up)
+            raise TrackingError(grad=down, wrt=up, message=(
+                f"No relation could be found between {down.id} and {up.id}.\n"
+                "This might be due to:\n"
+                "   No clear relation between the Tensors.\n"
+                "   Accidental clearing of trackers.\n"
+                "   Deletion of Tensors.\n"
+                "   Accidental reference to the wrong Tensor."
+            ))
 
         # chain gradients
         result = Tensor(obj=up._tracker['chn'][0][0](down._tensor, up._tensor), _gradient_override=True)
