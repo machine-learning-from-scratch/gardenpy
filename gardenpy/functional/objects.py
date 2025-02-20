@@ -170,7 +170,7 @@ class Tensor:
         return self._tensor
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> Union[Tuple[int, ...], None]:
         r"""
         **Tensor's shape.**
 
@@ -182,8 +182,9 @@ class Tensor:
                 Turned off by toggling ikwiad.
                 See :func:`Tensor.ikwiad`.
         """
-        self._is_valid_tensor(itm=self)
-        return self._tensor.shape
+        if self._is_valid_tensor(itm=self):
+            return self._tensor.shape
+        return None
 
     @property
     def tags(self) -> List[str]:
