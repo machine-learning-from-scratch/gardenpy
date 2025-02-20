@@ -69,7 +69,8 @@ class Tensor:
         self._id: Union[int, None] = None
         self._tensor: Union[np.ndarray, None] = obj
         self._type: str = 'mat'
-        self._tracker: Dict[str, Optional[list, Tensor, str]] = {'opr': [], 'drv': [], 'chn': [], 'rlt': [], 'org': []}
+        self._tracker: Union[Dict[str, Optional[list, Tensor, str]], None] = \
+            {'opr': [], 'drv': [], 'chn': [], 'rlt': [], 'org': []}
         self._tags: List[str] = []
 
         # update instances and id
@@ -426,8 +427,8 @@ class Tensor:
             # check index reference
             if len(cls._instances) <= itm:
                 raise ValueError(
-                    "Attempted reference outside Tensor instance list."
-                    f"Currently, instance list only contains {len(cls._instances)} items."
+                    "Attempted reference outside Tensor instance list. "
+                    f"Currently, instance list only contains {len(cls._instances)} items. "
                     f"A reference has been made to the {itm} index."
                 )
             # use index reference
@@ -742,9 +743,8 @@ class Tensor:
             )
 
         # set gradient relation
-        if binary:
-            relation = None
-        else:
+        relation = None
+        if not binary:
             relation = []
 
         def _relate(item, target, trace=None):
