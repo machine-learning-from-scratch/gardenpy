@@ -3,6 +3,7 @@ Example training script (checkered or non-checkered).
 Raw
 """
 
+import time
 import numpy as np
 
 import gardenpy as gp
@@ -26,17 +27,17 @@ optims = [gp.Optimizers('adam', correlator=False, alpha=1e-03) for _ in range(4)
 # data
 data = [[[0, 0]], [[0, 1]], [[1, 0]], [[1, 1]]]
 labels = [[[0, 1]], [[1, 0]], [[1, 0]], [[0, 1]]]
+data = [np.array(pt) for pt in data]
+labels = [np.array(pt) for pt in labels]
 
 ########################################################################################################################
 
 # training
 accu_loss = 0.0
+start_time = time.perf_counter()
 gp.progress(-1, epochs, b_len=50, b_type=2, desc="NaN")
 for epoch in range(1, epochs + 1):
     for x, y in zip(data, labels):
-        # array conversion
-        x = np.array(x)
-        y = np.array(y)
         # forward pass
         a1 = g(x @ w1 + b1)
         yhat = g(a1 @ w2 + b2)
@@ -57,7 +58,8 @@ for epoch in range(1, epochs + 1):
         accu_loss += loss.item()
 
     # progress bar
-    gp.progress(epoch - 1, epochs, b_len=50, b_type=2, desc=f"{accu_loss:.10f}")
+    elapsed = time.perf_counter() - start_time
+    gp.progress(epoch - 1, epochs, b_len=50, b_type=2, desc=f"{accu_loss:.10f}  {round(epoch / elapsed, 1)}it/s")
     accu_loss = 0
 
 ########################################################################################################################

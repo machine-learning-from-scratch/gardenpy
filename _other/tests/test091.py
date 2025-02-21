@@ -1,4 +1,3 @@
-import random
 import time
 import numpy as np
 from tqdm import tqdm
@@ -45,32 +44,30 @@ b2 = np.zeros((1, l3))
 
 s = time.time()
 for i in tqdm(range(it)):
-    # ch
-    tc = random.randint(0, 3)
+    for tc in range(len(x)):
+        # f
+        a1 = x[tc]
+        y1 = y[tc]
+        a2 = g(a1 @ w1 + b1)
+        a3 = g(a2 @ w2 + b2)
+        c = j(a3, y1)
 
-    # f
-    a1 = x[tc]
-    y1 = y[tc]
-    a2 = g(a1 @ w1 + b1)
-    a3 = g(a2 @ w2 + b2)
-    c = j(a3, y1)
+        # b
+        # l3
+        da3 = dj(a3, y1)
+        # l2
+        db2 = dg(a2 @ w2 + b2) * da3
+        dw2 = a2.T * db2
+        da2 = np.array([np.sum((w2 * db2).T, axis=0)])
+        # l1
+        db1 = dg(a1 @ w1 + b1) * da2
+        dw1 = a1.T * db1
 
-    # b
-    # l3
-    da3 = dj(a3, y1)
-    # l2
-    db2 = dg(a2 @ w2 + b2) * da3
-    dw2 = a2.T * db2
-    da2 = np.array([np.sum((w2 * db2).T, axis=0)])
-    # l1
-    db1 = dg(a1 @ w1 + b1) * da2
-    dw1 = a1.T * db1
-
-    # o
-    b2 -= lr * db2
-    w2 -= lr * dw2
-    b1 -= lr * db1
-    w1 -= lr * dw1
+        # o
+        b2 -= lr * db2
+        w2 -= lr * dw2
+        b1 -= lr * db1
+        w1 -= lr * dw1
 
 for x_c, y_c in zip(x, y):
     print(f"Predicted: {g(g(x_c @ w1 + b1) @ w2 + b2)}", end="  ")
