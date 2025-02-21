@@ -81,6 +81,13 @@ def progress(idx: int, max_idx: int, *, desc: Optional[str] = None, b_len: int =
             f"{ansi['reset']}{' ' * (b_len - int(b_len * completed))}"
             f"{ansi['bright_black']}]{ansi['reset']}  {desc or ''}"
         )
+    elif b_type == 2:
+        sys.stdout.write(
+            f"\r{ansi['reset']}"
+            f"|{'█' * int(b_len * completed)}"
+            f"{' ' * (b_len - int(b_len * completed))}"
+            f"{ansi['reset']}|  {desc or ''}"
+        )
     else:
         sys.stdout.write(
             f"\r{ansi['reset']}"
