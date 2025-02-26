@@ -22,7 +22,7 @@ b2 = gp.Initializers('uniform', kappa=0.0)(1, 2).array
 g = gp.Activators('lrelu', beta=0.1)
 criterion = gp.Losses('ssr')
 # optimizer
-optims = [gp.Optimizers('adam', correlator=False, alpha=1e-02) for _ in range(4)]
+optims = [gp.Optimizers('rmsp', correlator=False, alpha=1e-02) for _ in range(4)]
 
 # data
 data = [[[0, 0]], [[0, 1]], [[1, 0]], [[1, 1]]]
