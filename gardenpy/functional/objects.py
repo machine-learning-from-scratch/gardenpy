@@ -80,7 +80,7 @@ class Tensor:
         self._is_valid_tensor(itm=self)
         return str(self._tensor)
 
-########################################################################################################################
+    ####################################################################################################################
 
     @property
     def id(self) -> Union[str, None]:
@@ -207,7 +207,7 @@ class Tensor:
         """
         self._tags.append(str(itm))
 
-########################################################################################################################
+    ####################################################################################################################
 
     def instance_grad_reset(self) -> None:
         r"""
@@ -259,7 +259,7 @@ class Tensor:
             return None
         return Tensor(self._tensor)
 
-########################################################################################################################
+    ####################################################################################################################
 
     @classmethod
     def instances(cls) -> List[str]:
@@ -387,7 +387,7 @@ class Tensor:
         cls._ikwiad = bool(ikwiad)
         return None
 
-########################################################################################################################
+    ####################################################################################################################
 
     @staticmethod
     def _is_valid_tensor(itm: 'Tensor') -> bool:
@@ -458,12 +458,13 @@ class Tensor:
             itm._id = open_id
         return None
 
-########################################################################################################################
+    ####################################################################################################################
 
     class _TensorMethod:
         r"""
         **Base class for Tensor methods.**
         """
+
         def __init__(self, prefix):
             self._prefix = str(prefix)
 
@@ -494,6 +495,7 @@ class Tensor:
         Used for autograd methods that involve one Tensor.
         Autograd can be called with this function without further modification to Tensors once all methods are defined.
         """
+
         @staticmethod
         def forward(main: np.ndarray) -> np.ndarray:
             r"""
@@ -566,6 +568,7 @@ class Tensor:
         Used for autograd methods that involve two Tensors.
         Autograd can be called with this function without further modification to Tensors once all methods are defined.
         """
+
         @staticmethod
         def forward(main: np.ndarray, other: np.ndarray) -> np.ndarray:
             r"""
@@ -695,7 +698,7 @@ class Tensor:
             # return result
             return result
 
-########################################################################################################################
+    ####################################################################################################################
 
     @staticmethod
     def nabla(grad: 'Tensor', wrt: 'Tensor', *, binary: bool = True) -> 'Tensor':
@@ -923,7 +926,7 @@ class Tensor:
         # return final gradient
         return result
 
-########################################################################################################################
+    ####################################################################################################################
 
     class _MatMul(PairedTensorMethod):
         # matrix multiplication
