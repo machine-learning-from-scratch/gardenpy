@@ -49,8 +49,7 @@ class Tensor:
         Currently only supports two-dimensional arrays that consist of real numbers.
 
         Args:
-            obj (any): Object to be turned into a Tensor.
-                Object must contain only numbers and be two-dimensional.
+            obj (any): Two-dimensional object to be turned into a Tensor.
 
         Raises:
             TypeError: If the object isn't a two-dimensional NumPy array consisting of only numbers.
@@ -176,7 +175,7 @@ class Tensor:
         **Tensor's shape.**
 
         Returns:
-            tuple: Tensor's shape.
+            tuple | None: Tensor's shape.
 
         Raises:
             UserWarning: If the function is used on a deleted Tensor.
@@ -258,6 +257,22 @@ class Tensor:
                 warn("Attempted matrix conversion on a Tensor that wasn't a gradient.", UserWarning)
             return None
         return Tensor(self._tensor)
+
+    def copy(self) -> Union['Tensor', None]:
+        r"""
+        **Creates a distinct copy of a Tensor.**
+
+        Returns:
+            Tensor | None: Copied Tensor.
+
+        Raises:
+            UserWarning: If the function is used on a deleted Tensor.
+                Turned off by toggling ikwiad.
+                See :func:`Tensor.ikwiad`.
+        """
+        if self._is_valid_tensor(itm=self):
+            return Tensor(self._tensor)
+        return None
 
     ####################################################################################################################
 

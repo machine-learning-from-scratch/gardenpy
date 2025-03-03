@@ -71,8 +71,8 @@ class DNN:
         return self._optim
 
     @property
-    def thetas(self) -> Tuple[Tensor, Tensor]:
-        return self._theta_w, self._theta_b
+    def thetas(self) -> Tuple[Optional[Tensor], Optional[Tensor]]:
+        return self._theta_w.copy(), self._theta_b.copy()
 
     ####################################################################################################################
 
