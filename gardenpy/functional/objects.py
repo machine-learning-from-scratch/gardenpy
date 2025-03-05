@@ -638,7 +638,7 @@ class Tensor:
                 try:
                     return down * up
                 except ValueError:
-                    return np.sum(down.T * up, axis=1)
+                    return np.sum((down * up).T, axis=1)
 
         def main(self, main: 'Tensor', other: Union['Tensor', np.ndarray, float, int]) -> 'Tensor':
             r"""
