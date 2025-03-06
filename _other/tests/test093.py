@@ -24,3 +24,5 @@ d_m1_r1 = np.random.randn(5, 3, 5, 4)
 d_m1_r2 = np.random.randn(1, 3, 5, 4)
 print(d_r1_r2.shape)
 print(d_m1_r1.shape)
+
+# test push
