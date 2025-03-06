@@ -4,6 +4,7 @@ m1 = np.random.randn(5, 4)  # {5, 4}
 m2 = np.random.randn(4, 3)  # {4, 3}
 m3 = np.random.randn(1, 5)  # {1, 5}
 m4 = np.random.randn(3, 1)  # {3, 1}
+
 r1 = m1 @ m2  # {5, 3}
 r2 = m3 @ r1  # {1, 3}
 ls = r2 @ m4  # {1, 1}
