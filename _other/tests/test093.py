@@ -1,5 +1,7 @@
 import numpy as np
 
+########################################################################################################################
+
 
 def chain_opr(down: np.ndarray, up: np.ndarray) -> np.ndarray:
     # create empty gradient
@@ -36,11 +38,11 @@ def chain_opr_fast(down: np.ndarray, up: np.ndarray) -> np.ndarray:
 
 
 def chain_final(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-    # 6th dimensional downstream expansion
+    # 6D downstream expansion
     down = down[np.newaxis, np.newaxis, :, :, :, :]
-    # 6th dimensional upstream expansion
+    # 6D upstream expansion
     up = up[:, :, :, :, np.newaxis, np.newaxis]
-    # 6th to 4th dimensional broadcast manipulation
+    # 6D to 4D manipulation
     return np.sum(down * up, axis=(2, 3))
 
 
