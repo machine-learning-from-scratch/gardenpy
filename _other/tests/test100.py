@@ -22,14 +22,14 @@ def d_matmul_o(main: np.ndarray, other: np.ndarray) -> np.ndarray:
 
 
 def d_pow(main: np.ndarray, other: np.ndarray) -> np.ndarray:
-    # todo: edge cases where other is 0
     two_grad = other * (main ** (other - 1.0))
+    two_grad = np.where(np.isposinf(two_grad), 1e10, np.where(np.isneginf(two_grad), -1e10, two_grad))
     return four_broadcast(two_grad=two_grad)
 
 
 def d_pow_o(main: np.ndarray, other: np.ndarray) -> np.ndarray:
-    # todo: edge cases where main is 0
     two_grad = np.log(main) * (main ** other)
+    two_grad = np.where(np.isposinf(two_grad), 1e10, np.where(np.isneginf(two_grad), -1e10, two_grad))
     return four_broadcast(two_grad=two_grad)
 
 
@@ -50,6 +50,7 @@ def d_truediv(main: np.ndarray, other: np.ndarray) -> np.ndarray:
 
 def d_truediv_o(main: np.ndarray, other: np.ndarray) -> np.ndarray:
     two_grad = -main / other ** 2.0
+    two_grad = np.where(np.isposinf(two_grad), 1e10, np.where(np.isneginf(two_grad), -1e10, two_grad))
     return four_broadcast(two_grad=two_grad)
 
 
