@@ -3,14 +3,17 @@ import numpy as np
 ########################################################################################################################
 
 
+def four_broadcast(two_grad: np.ndarray) -> np.ndarray:
+    # 4D identity creation
+    eye = np.zeros((*two_grad.shape, *two_grad.shape))
+    np.einsum('ijij -> ij', eye, optimize=False)[:] = 1
+    # 2D to 4D broadcasting
+    return eye * two_grad[np.newaxis, np.newaxis, :, :]
+
+
 def d_add(main: np.ndarray, other: np.ndarray) -> np.ndarray:
-    result = np.zeros((*main.shape, *other.shape))
-    print(other.shape)
-    print(result.shape)
-    print(other.shape[0])
-    print(other.shape[1])
-    result[np.arange(main.shape[0]), np.arange(main.shape[1]), np.arange(other.shape[0]), np.arange(other.shape[1])] = 1
-    print(result)
+    two_grad = np.ones(main.shape)
+    return four_broadcast(two_grad=two_grad)
 
 
 ########################################################################################################################
@@ -29,18 +32,18 @@ d_m2_r1 = d_add(m2, m1)  # {5, 6, 5, 6}
 ########################################################################################################################
 
 # shape testing
-print_shapes = False
-print_results = False
-
-if print_shapes:
-    print('-----------------------------------------------------------------------------------------------------------')
-    print(d_m1_r1.shape)  # {5, 6, 5, 6}
-    print(d_m2_r1.shape)  # {5, 6, 5, 6}
-    print('-----------------------------------------------------------------------------------------------------------')
+print_shapes = True
+print_results = True
 
 if print_results:
     print('-----------------------------------------------------------------------------------------------------------')
     print(d_m1_r1)  # {5, 6, 5, 6}
     print('-----------------------------------------------------------------------------------------------------------')
     print(d_m2_r1)  # {5, 6, 5, 6}
+    print('-----------------------------------------------------------------------------------------------------------')
+
+if print_shapes:
+    print('-----------------------------------------------------------------------------------------------------------')
+    print(d_m1_r1.shape)  # {5, 6, 5, 6}
+    print(d_m2_r1.shape)  # {5, 6, 5, 6}
     print('-----------------------------------------------------------------------------------------------------------')
