@@ -2,11 +2,11 @@ import numpy as np
 
 m = 4
 n = 3
-quad = np.arange(1, 145).reshape(m, n, m, n)
+quad = np.zeros((m, n, m, n))
 
 for i, tensor in enumerate(quad):
     for j, matrix in enumerate(tensor):
-        matrix[i, j] = 0
+        matrix[i, j] = 1
 
 print(quad)
 
