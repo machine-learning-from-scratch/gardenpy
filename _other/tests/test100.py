@@ -6,7 +6,7 @@ import numpy as np
 def four_broadcast_e(two_grad: np.ndarray) -> np.ndarray:
     # 4D identity creation
     eye = np.zeros((*two_grad.shape, *two_grad.shape))
-    np.einsum('ijij -> ij', eye, optimize=False)[:] = 1
+    np.einsum('ijij -> ij', eye, optimize=False)[:] = 1.0
     # 2D to 4D broadcasting
     return eye * two_grad[np.newaxis, np.newaxis, :, :]
 
@@ -49,16 +49,6 @@ def reduce_grad(grad: np.ndarray) -> np.ndarray:
 ########################################################################################################################
 
 
-def d_matmul(main: np.ndarray, other: np.ndarray) -> np.ndarray:
-    # todo
-    ...
-
-
-def d_matmul_o(main: np.ndarray, other: np.ndarray) -> np.ndarray:
-    # todo
-    ...
-
-
 def lrelu(x: np.ndarray) -> np.ndarray:
     return np.maximum(0.1 * x, x)
 
@@ -75,6 +65,16 @@ def ssr(yhat: np.ndarray, y: np.ndarray) -> np.ndarray:
 @scalar_operation
 def d_ssr(yhat: np.ndarray, y: np.ndarray) -> np.ndarray:
     return -2.0 * (y - yhat)
+
+
+def d_matmul(main: np.ndarray, other: np.ndarray) -> np.ndarray:
+    # todo
+    ...
+
+
+def d_matmul_o(main: np.ndarray, other: np.ndarray) -> np.ndarray:
+    # todo
+    ...
 
 
 @elementwise_operation
