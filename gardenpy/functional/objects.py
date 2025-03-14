@@ -432,7 +432,7 @@ class Tensor:
         # attempt hex conversion
         try:
             itm = int(itm, 16)
-        except ValueError or TypeError:
+        except (ValueError, TypeError):
             pass
 
         if isinstance(itm, Tensor):
