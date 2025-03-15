@@ -15,6 +15,12 @@ def four_broadcast_s(two_grad: np.ndarray) -> np.ndarray:
     return two_grad[np.newaxis, np.newaxis, :, :]
 
 
+def custom_operation(func: callable) -> callable:
+    def wrapper(main: np.ndarray, other: np.ndarray) -> np.ndarray:
+        return func(main, other)
+    return wrapper
+
+
 def elementwise_operation(func: callable) -> callable:
     def wrapper(main: np.ndarray, other: np.ndarray) -> np.ndarray:
         return four_broadcast_e(func(main, other))
@@ -67,14 +73,18 @@ def d_ssr(yhat: np.ndarray, y: np.ndarray) -> np.ndarray:
     return -2.0 * (y - yhat)
 
 
+@custom_operation
 def d_matmul(main: np.ndarray, other: np.ndarray) -> np.ndarray:
-    # todo
-    ...
+    four_concat = other.T[np.newaxis, :, np.newaxis, :]
+    eye = np.eye(main.shape[0], main.shape[0])[:, np.newaxis, :, np.newaxis]
+    return four_concat * eye
 
 
+@custom_operation
 def d_matmul_o(main: np.ndarray, other: np.ndarray) -> np.ndarray:
-    # todo
-    ...
+    four_concat = main[:, np.newaxis, :, np.newaxis]
+    eye = np.eye(other.shape[1], other.shape[1])[np.newaxis, :, np.newaxis, :]
+    return four_concat * eye
 
 
 @elementwise_operation
