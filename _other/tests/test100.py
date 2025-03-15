@@ -76,14 +76,14 @@ def d_ssr(yhat: np.ndarray, y: np.ndarray) -> np.ndarray:
 @custom_operation
 def d_matmul(main: np.ndarray, other: np.ndarray) -> np.ndarray:
     four_concat = other.T[np.newaxis, :, np.newaxis, :]
-    eye = np.eye(main.shape[0], main.shape[0])[:, np.newaxis, :, np.newaxis]
+    eye = np.eye(main.shape[0])[:, np.newaxis, :, np.newaxis]
     return four_concat * eye
 
 
 @custom_operation
 def d_matmul_o(main: np.ndarray, other: np.ndarray) -> np.ndarray:
     four_concat = main[:, np.newaxis, :, np.newaxis]
-    eye = np.eye(other.shape[1], other.shape[1])[np.newaxis, :, np.newaxis, :]
+    eye = np.eye(other.shape[1])[np.newaxis, :, np.newaxis, :]
     return four_concat * eye
 
 
