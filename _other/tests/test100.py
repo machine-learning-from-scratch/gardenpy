@@ -41,9 +41,9 @@ def scalar_operation(func: callable) -> callable:
 
 def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
     # 6D downstream expansion
-    down = down[np.newaxis, np.newaxis, :, :, :, :]
+    down = down[:, :, :, :, np.newaxis, np.newaxis]
     # 6D upstream expansion
-    up = up[:, :, :, :, np.newaxis, np.newaxis]
+    up = up[np.newaxis, np.newaxis, :, :, :, :]
     # 6D to 4D manipulation
     return np.sum(down * up, axis=(2, 3))
 

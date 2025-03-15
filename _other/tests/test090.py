@@ -22,7 +22,7 @@ b2 = gp.Initializers('uniform', kappa=0.0)(1, 2).array
 g = gp.Activators('lrelu', beta=0.1)
 criterion = gp.Losses('ssr')
 # optimizer
-optims = [gp.Optimizers('rmsp', correlator=False, alpha=1e-02) for _ in range(4)]
+optims = [gp.Optimizers('sgd', correlator=False, alpha=1e-02) for _ in range(4)]
 
 # data
 data = [[[0, 0]], [[0, 1]], [[1, 0]], [[1, 1]]]
@@ -35,7 +35,7 @@ labels = [np.array(pt) for pt in labels]
 # training
 accu_loss = 0.0
 start_time = time.perf_counter()
-gp.progress(-1, epochs, b_len=50, b_type=3, desc="NaN")
+gp.progress(-1, epochs, b_len=50, b_type=3, desc='NaN')
 for epoch in range(1, epochs + 1):
     for x, y in zip(data, labels):
         # forward pass
@@ -59,7 +59,7 @@ for epoch in range(1, epochs + 1):
 
     # progress bar
     elapsed = time.perf_counter() - start_time
-    gp.progress(epoch - 1, epochs, b_len=50, b_type=3, desc=f"{accu_loss:.10f}  {round(epoch / elapsed, 1)}it/s")
+    gp.progress(epoch - 1, epochs, b_len=50, b_type=3, desc=f'{accu_loss:.10f}  {round(epoch / elapsed, 1)}it/s')
     accu_loss = 0
 
 ########################################################################################################################
