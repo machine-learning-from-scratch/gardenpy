@@ -7,10 +7,8 @@ import shutil
 
 import pandas as pd
 
-from colorama import Fore, Style
 from tqdm import tqdm
 
-color = f'{Fore.GREEN}{{l_bar}}{{bar}}{{r_bar}}{Style.RESET_ALL}'
 
 # file locations
 save_root = os.path.dirname(__file__)
@@ -37,7 +35,7 @@ if os.listdir(data_root) != ['labels.csv', 'values.csv']:
     labels = []
 
     # generate data
-    for i in tqdm(range(4), ncols=100, desc='generating', bar_format=color):
+    for i in tqdm(range(4), ncols=100, desc='generating'):
         values.append([int(i > 1), int(i % 2 != 0)])
         labels.append([int(values[i][0] != values[i][1]), int(values[i][0] == values[i][1])])
 

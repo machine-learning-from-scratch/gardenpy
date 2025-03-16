@@ -15,6 +15,13 @@ def four_broadcast_s(two_grad: np.ndarray) -> np.ndarray:
     return two_grad[np.newaxis, np.newaxis, :, :]
 
 
+def inf_remove(func: callable) -> callable:
+    def wrapper(*args, **kwargs) -> np.ndarray:
+        array = func(*args, **kwargs)
+        return np.where(np.isposinf(array), 1e10, np.where(np.isneginf(array), -1e10, array))
+    return wrapper
+
+
 def custom_operation(func: callable) -> callable:
     def wrapper(main: np.ndarray, other: np.ndarray) -> np.ndarray:
         return func(main, other)
@@ -88,16 +95,16 @@ def d_matmul_o(main: np.ndarray, other: np.ndarray) -> np.ndarray:
 
 
 @elementwise_operation
+@inf_remove
 def d_pow(main: np.ndarray, other: np.ndarray) -> np.ndarray:
     two_grad = other * (main ** (other - 1.0))
-    two_grad = np.where(np.isposinf(two_grad), 1e10, np.where(np.isneginf(two_grad), -1e10, two_grad))
     return two_grad
 
 
 @elementwise_operation
+@inf_remove
 def d_pow_o(main: np.ndarray, other: np.ndarray) -> np.ndarray:
     two_grad = np.log(main) * (main ** other)
-    two_grad = np.where(np.isposinf(two_grad), 1e10, np.where(np.isneginf(two_grad), -1e10, two_grad))
     return two_grad
 
 
@@ -120,9 +127,9 @@ def d_truediv(main: np.ndarray, other: np.ndarray) -> np.ndarray:
 
 
 @elementwise_operation
+@inf_remove
 def d_truediv_o(main: np.ndarray, other: np.ndarray) -> np.ndarray:
     two_grad = -main / other ** 2.0
-    two_grad = np.where(np.isposinf(two_grad), 1e10, np.where(np.isneginf(two_grad), -1e10, two_grad))
     return two_grad
 
 
