@@ -1,6 +1,11 @@
-import gardenpy as gp
+import numpy as np
+from time import perf_counter as pf
 
-arr1 = gp.Tensor([[5, 5, 5]])
-arr2 = gp.Tensor([[1, 1, 1]])
-arr3 = arr1 + arr2
-print(gp.nabla(arr1, arr3).tracker)
+start = pf()
+arr1 = np.random.randn(1, 256, 256, 784)
+arr2 = np.random.randn(1, 1, 1, 256)
+
+arr3 = np.sum(arr1[np.newaxis, np.newaxis, :, :, :, :] * arr2[:, :, :, :, np.newaxis, np.newaxis], axis=(2, 3))
+
+end=pf()
+print(end - start)
