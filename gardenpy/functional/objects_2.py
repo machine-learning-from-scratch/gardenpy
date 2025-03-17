@@ -1,6 +1,7 @@
-from typing import Dict, List, Union, Type, Optional, Tuple
+from typing import Dict, List, Union, Optional, Tuple
 from warnings import warn
 import numpy as np
+from numpy.typing import NDArray
 
 from ..utils.errors import TrackingError
 
@@ -25,10 +26,10 @@ class _Array:
         assert _type in ('matrix', 'gradient')
         self._type: Union[str, None] = str(_type)
         self._id: Union[int, None] = None
-        self._array: Union[np.ndarray, None] = obj
+        self._array: Union[NDArray, None] = obj
         # autodiff internals
-        self._default_tracker: Union[Dict[str, Union[Type['_Array'], list, None]], None] = None
-        self._tracker: Union[Dict[str, Union[Type['_Array'], list, None]], None] = None
+        self._default_tracker: Union[Dict[str, Union['_Array', list, None]], None] = None
+        self._tracker: Union[Dict[str, Union['_Array', list, None]], None] = None
         # other internals
         self._dims: int = _dims
         self._tags: List[str] = []
@@ -39,8 +40,6 @@ class _Array:
     def __repr__(self) -> str:
         self._is_valid_array(itm=self)
         return str(self._array)
-
-    ####################################################################################################################
 
     @property
     def id(self) -> Union[str, None]:
@@ -55,7 +54,7 @@ class _Array:
         return self._type
 
     @property
-    def internals(self) -> Union[Dict[str, Union[Type['_Array'], list, str, None]], None]:
+    def internals(self) -> Union[Dict[str, Union['_Array', list, str, None]], None]:
         if not self._is_valid_array(itm=self):
             # invalid array
             return None
@@ -70,7 +69,7 @@ class _Array:
         return {'id': self._id, 'tags': self._tags, **alt_tracker}
 
     @property
-    def array(self) -> Union[np.ndarray, None]:
+    def array(self) -> Union[NDArray, None]:
         self._is_valid_array(itm=self)
         return self._array
 
@@ -89,8 +88,6 @@ class _Array:
     def tags(self, tag: str) -> None:
         self._is_valid_array(itm=self)
         self._tags.append(str(tag))
-
-    ####################################################################################################################
 
     def instance_track_reset(self) -> None:
         if self._is_valid_array(itm=self):
@@ -115,8 +112,6 @@ class _Array:
             return _Array(obj=self._array, _type=self._type, _dims=self._dims)
         return None
 
-    ####################################################################################################################
-
     @classmethod
     def cache(cls) -> Dict[str, List[Union[str, None]]]:
         # subclass caches
@@ -128,7 +123,7 @@ class _Array:
     @classmethod
     def reference(cls, idx: str, atype: Optional[str] = None) -> '_Array':
         # reference array
-        array, _, _ = _Array._reference_array(itm=idx, atype=atype or None)
+        array, _, _ = _Array._reference_array(itm=idx, atype=atype)
         return array
 
     @classmethod
@@ -166,8 +161,6 @@ class _Array:
                 mat_args.append(arg)
             elif atype == 'gradient':
                 grad_args.append(arg)
-
-    ####################################################################################################################
 
     @staticmethod
     def _is_valid_array(itm: '_Array') -> bool:
@@ -246,7 +239,7 @@ class _Array:
 
     @staticmethod
     def _inf_remove(func: callable) -> callable:
-        def wrapper(*args, **kwargs) -> np.ndarray:
+        def wrapper(*args, **kwargs) -> NDArray:
             array = func(*args, **kwargs)
             # replace infinities
             return np.where(np.isposinf(array), 1e10, np.where(np.isneginf(array), -1e10, array))
@@ -263,42 +256,68 @@ class Matrix(_Array):
         self._default_tracker = {'drv': [], 'rlt': [], 'org': []}
         self._tracker = self._default_tracker
 
-    ####################################################################################################################
-
-    @staticmethod
-    def four_broadcast_s(two_grad: np.ndarray) -> np.ndarray:
-        # 4D shape extension
-        return two_grad[np.newaxis, np.newaxis, :, :]
-
-    ####################################################################################################################
-
     @staticmethod
     def _update_track(obj: 'Matrix', drv: any, rlt: any) -> None:
+        # update tracker
         obj._tracker['drv'].append(drv)
         obj._tracker['rlt'].append(rlt)
         return None
 
-    ####################################################################################################################
+    class _BaseMethod:
+        @classmethod
+        def assert_four(cls, func: callable) -> callable:
+            def wrapper(*args, **kwargs) -> NDArray:
+                # 4D result assertion
+                result = func(*args, **kwargs)
+                assert len(result.shape) == 4
+                return result
+            return wrapper
 
-    class LoneElementWise:
-        @staticmethod
-        def four_broadcast_e(two_grad: np.ndarray) -> np.ndarray:
+        @classmethod
+        def four_broadcast_e(cls, two_grad: NDArray) -> NDArray:
+            assert len(two_grad.shape) == 2
             # 4D identity creation
             eye = np.zeros((*two_grad.shape, *two_grad.shape))
             np.einsum('ijij -> ij', eye, optimize=False)[:] = 1.0
             # 2D to 4D broadcasting
             return eye * two_grad[np.newaxis, np.newaxis, :, :]
 
+        @classmethod
+        def four_broadcast_s(cls, two_grad: NDArray) -> NDArray:
+            assert len(two_grad.shape) == 2
+            # extend to 4D
+            return two_grad[np.newaxis, np.newaxis, :, :]
+
+        @classmethod
+        def inf_remove(cls, func: callable, *, inf_val: Union[float, int] = 1e10) -> callable:
+            def wrapper(*args, **kwargs) -> NDArray:
+                array = func(*args, **kwargs)
+                # inf to inf_val
+                return np.where(np.isposinf(array), inf_val, np.where(np.isneginf(array), -inf_val, array))
+            return wrapper
+
         @staticmethod
-        def forward(main: np.ndarray) -> np.ndarray:
+        def forward(*args, **kwargs) -> NDArray:
+            ...
+
+        @staticmethod
+        def backward(*args, **kwargs) -> NDArray:
+            ...
+
+        def main(self, *args, **kwargs) -> 'Matrix':
+            ...
+
+    class LoneElementWiseMethod(_BaseMethod):
+        @staticmethod
+        def forward(main: NDArray) -> NDArray:
             raise NotImplementedError(
                 "Attempted function call without redefinition in subclass.\n"
                 "Either define this call, or avoid referencing it."
             )
 
         @staticmethod
-        @four_broadcast_e
-        def backward(main: np.ndarray) -> np.ndarray:
+        @super().four_broadcast_e
+        def backward(main: NDArray) -> NDArray:
             raise NotImplementedError(
                 "Attempted function call without redefinition in subclass.\n"
                 "Either define this call, or avoid referencing it."
@@ -322,25 +341,17 @@ class Matrix(_Array):
             # return result
             return result
 
-    class ElementWise:
+    class ElementWiseMethod(_BaseMethod):
         @staticmethod
-        def four_broadcast_e(two_grad: np.ndarray) -> np.ndarray:
-            # 4D identity creation
-            eye = np.zeros((*two_grad.shape, *two_grad.shape))
-            np.einsum('ijij -> ij', eye, optimize=False)[:] = 1.0
-            # 2D to 4D broadcasting
-            return eye * two_grad[np.newaxis, np.newaxis, :, :]
-
-        @staticmethod
-        def forward(main: np.ndarray, other: np.ndarray) -> np.ndarray:
+        def forward(main: NDArray, other: NDArray) -> NDArray:
             raise NotImplementedError(
                 "Attempted function call without redefinition in subclass.\n"
                 "Either define this call, or avoid referencing it."
             )
 
         @staticmethod
-        @four_broadcast_e
-        def backward(main: np.ndarray, other: np.ndarray) -> np.ndarray:
+        @super().four_broadcast_e
+        def backward(main: NDArray, other: NDArray) -> NDArray:
             raise NotImplementedError(
                 "Attempted function call without redefinition in subclass.\n"
                 "Either define this call, or avoid referencing it."
@@ -364,28 +375,20 @@ class Matrix(_Array):
             # return result
             return result
 
-    class Scalar:
+    class ScalarMethod(_BaseMethod):
         ...
 
-    class Custom:
+    class CustomMethod(_BaseMethod):
         @staticmethod
-        def check_four(func: callable) -> callable:
-            def wrapper(*args, **kwargs) -> np.ndarray:
-                result = func(*args, **kwargs)
-                assert len(result.shape) == 4
-                return result
-            return wrapper
-
-        @staticmethod
-        def forward(main: np.ndarray, other: np.ndarray) -> np.ndarray:
+        def forward(main: NDArray, other: NDArray) -> NDArray:
             raise NotImplementedError(
                 "Attempted function call without redefinition in subclass.\n"
                 "Either define this call, or avoid referencing it."
             )
 
         @staticmethod
-        @check_four
-        def backward(main: np.ndarray, other: np.ndarray) -> np.ndarray:
+        @super().assert_four
+        def backward(main: NDArray, other: NDArray) -> NDArray:
             raise NotImplementedError(
                 "Attempted function call without redefinition in subclass.\n"
                 "Either define this call, or avoid referencing it."
@@ -393,8 +396,6 @@ class Matrix(_Array):
 
         def main(self):
             ...
-
-    ####################################################################################################################
 
     @staticmethod
     def nabla(grad: 'Matrix', wrt: 'Matrix', *, binary: bool = True) -> 'Gradient':
@@ -524,6 +525,9 @@ class Matrix(_Array):
             result._tags.append('linear override')
         return result
 
+    class _MatMul(Custom):
+        ...
+
 
 ########################################################################################################################
 
@@ -537,15 +541,11 @@ class Gradient(_Array):
         self._default_tracker = {'rlt': []}
         self._tracker = self._default_tracker
 
-    ####################################################################################################################
-
     def reduce_grad(self) -> Matrix:
         return Matrix(np.sum(self._array, axis=(0, 1)))
 
-    ####################################################################################################################
-
     @staticmethod
-    def _chain_opr(down: np.ndarray, up: np.ndarray) -> np.ndarray:
+    def _chain_opr(down: NDArray, up: NDArray) -> NDArray:
         # 6D downstream expansion
         down = down[:, :, :, :, np.newaxis, np.newaxis]
         # 6D upstream expansion
@@ -582,7 +582,7 @@ class Gradient(_Array):
         # chain gradients
         result = Gradient(obj=Gradient._chain_opr(down=down._array, up=up._array), _signal_override=True)
         # set gradient internals
-        result._type = 'grad'
+        result._type = 'gradient'
         result._tracker['rlt'] = down._tracker['rlt'] + up._tracker['rlt'][1:]
         # return final gradient
         return result
