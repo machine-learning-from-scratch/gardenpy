@@ -1,11 +1,25 @@
 import numpy as np
 from time import perf_counter as pf
 
+from test100 import *
+
+arr1 = np.random.randn(1, 784)
+arr2 = np.random.randn(784, 256)
+arr3 = arr1 @ arr2
+
 start = pf()
-arr1 = np.random.randn(1, 256, 256, 784)
-arr2 = np.random.randn(1, 1, 1, 256)
+d_arr1 = d_matmul_o(arr1, arr2)
+print(d_arr1.shape)
+end = pf()
+print(end - start)
 
-arr3 = np.sum(arr1[np.newaxis, np.newaxis, :, :, :, :] * arr2[:, :, :, :, np.newaxis, np.newaxis], axis=(2, 3))
+d_arrb = np.random.randn(1, 1, 1, 256)
+start = pf()
+chain(d_arrb, d_arr1)
+end = pf()
+print(end - start)
 
-end=pf()
+start = pf()
+arr4 = np.ones((1, 256, 784, 256))
+end = pf()
 print(end - start)
