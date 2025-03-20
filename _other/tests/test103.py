@@ -1,5 +1,15 @@
-from gardenpy.functional.objects_2 import Matrix, Gradient
+from gardenpy.functional.objects_temp import Matrix, Gradient
 
-mat1 = Matrix([[1, 2, 3, 4]])
-mat2 = Matrix([[5, 6, 7, 8]])
-mat3 = mat1 * mat2
+m1 = Matrix([[1, 2]])
+w1 = Matrix([[1, 2, 3], [4, 5, 6]])
+b1 = Matrix([[7, 8, 9]])
+w2 = Matrix([[10, 11], [12, 13], [14, 15]])
+b2 = Matrix([[16, 17]])
+
+arr1 = m1 @ w1 + b1
+arr2 = arr1 @ w2 + b2
+
+Gradient.nabla(w2, arr2)
+Gradient.nabla(b2, arr2)
+Gradient.nabla(w1, arr2)
+Gradient.nabla(b1, arr2)

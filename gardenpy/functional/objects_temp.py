@@ -11,38 +11,52 @@ Contains:
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import TypeVar
+from typing import Self, TypeVar
 from warnings import warn
 import numpy as np
 from numpy.typing import NDArray
 
-from .operators_2 import inf_remove
+# from .operators_2 import inf_remove
 from ..utils.errors import TrackingError
 
-# type T
+# generic array type T
 T = TypeVar('T', bound='_Array')
 
 
+def inf_remove(*, inf_val: float | int = 1e10) -> callable:
+    assert isinstance(inf_val, float | int) and 0 < inf_val
+
+    def decorator(func: callable) -> callable:
+        def wrapper(*args: any, **kwargs: any) -> NDArray:
+            array = func(*args, **kwargs)
+            assert isinstance(array, np.ndarray)
+            # inf to inf_val
+            return np.where(np.isposinf(array), inf_val, np.where(np.isneginf(array), -inf_val, array))
+
+        return wrapper
+
+    return decorator
+
+
 class _Array(ABC):
-    # base cache
-    _cache: list[T | None] = []
     # ikwiad
     _ikwiad: bool = False
+    # base memory internals
+    _cache: list[T | None] = []
+    _prefix: str = 'a'
 
     def __init__(self, obj: any, *, _ndim: int):
         # verify object
         obj = np.array(obj)
         if not np.issubdtype(obj.dtype, np.number) or obj.ndim != _ndim:
-            # NB: Dimensional verification to check dimensional consistency.
-            # Currently, two for matrices and four for gradients.
             raise TypeError(f"Attempted creation with object that wasn't {_ndim}-dimensional with only real numbers.")
 
         # tracking internals
         self._id: int | None = None
         self._array: NDArray | None = obj
         # autodiff internals
-        self._default_tracker: dict[str, _Array | list | None] | None = None
-        self._tracker: dict[str, _Array | list | None] | None = None
+        self._default_tracker: dict[str, T | list | None] | None = None
+        self._tracker: dict[str, T | list | None] | None = None
         # other internals
         self._tags: list[str] = []
 
@@ -55,8 +69,7 @@ class _Array(ABC):
     @property
     def id(self) -> str | None:
         self._is_valid_array(itm=self)
-        class_prefix = {_Array: 'a', Matrix: "m", Gradient: "g"}
-        return f"{class_prefix.get(self.__class__)}{hex(self._id)}"
+        return f"{self.__class__._prefix}{hex(self._id)}"
 
     @property
     def tags(self) -> list[str]:
@@ -88,10 +101,10 @@ class _Array(ABC):
 
         # ikwiad reset
         _Array._ikwiad = user_ikwiad
-        return {'id': self._id, 'tags': self._tags, **alt_tracker}
+        return {'id': self.id, 'tags': self._tags, **alt_tracker}
 
     @classmethod
-    def _add_cache(cls, itm: _Array) -> None:
+    def _add_cache(cls, itm: T) -> None:
         try:
             # use unused cache location
             open_id = cls._cache.index(None)
@@ -103,24 +116,33 @@ class _Array(ABC):
             cls._cache.append(itm)
             itm._id = open_id
 
+    # todo
     @classmethod
-    def _reference_array(cls, itm: T | str | int) -> tuple[T, int]:
+    def _reference_array(cls, itm: Self | str | int) -> tuple[T, int]:
         # ikwiad on
         user_ikwiad = _Array._ikwiad
         _Array._ikwiad = True
 
         # attempt pointer reference
+        _prefix = None
         try:
-            assert isinstance(itm, str)
+            # id conversion
+            _prefix = itm[0]
             itm = int(itm[1:], 16)
-        except (AssertionError, ValueError, TypeError):
+        except (ValueError, TypeError):
             pass
 
         if isinstance(itm, _Array):
-            # array type
+            if cls.__name__ != itm.__class__:
+                # differing classes
+                raise TypeError()
+            # array id
             itm_id = itm._id
         elif isinstance(itm, int):
             # check index reference
+            if _prefix is not None and _prefix != cls._prefix:
+                # differing classes
+                raise TypeError()
             if len(cls._cache) <= itm:
                 # out of index
                 raise ValueError("")
@@ -130,7 +152,7 @@ class _Array(ABC):
         else:
             # invalid reference
             raise TypeError("")
-        if not _Array._is_valid_array(itm=itm):
+        if not cls._is_valid_array(itm=itm):
             # invalid array
             raise TypeError("")
 
@@ -152,7 +174,7 @@ class _Array(ABC):
         return None
 
     @classmethod
-    def reference(cls, idx: str) -> T:
+    def reference(cls, idx: str | int) -> T:
         # reference array
         array, _ = cls._reference_array(itm=idx)
         return array
@@ -192,11 +214,11 @@ class _Array(ABC):
                 warn("", UserWarning)
             return False
 
-    def _unpack_ids(self, itm: T | list | property | None) -> property | None:
+    def _unpack_ids(self, itm: T | list | property | None) -> list | str | None:
         if isinstance(itm, _Array):
             return itm.id
         elif isinstance(itm, list):
-            return self._unpack_ids(itm)
+            return [self._unpack_ids(it) for it in itm]
         else:
             return None
 
@@ -207,69 +229,11 @@ class _Array(ABC):
 
 ########################################################################################################################
 
-def _ndim_arg(ndim: int) -> callable:
-    assert isinstance(ndim, int) and 0 < ndim
-    def decorator(func: callable) -> callable:
-        def wrapper(*args: any, **kwargs: any) -> NDArray:
-            if not all(not isinstance(arg, np.ndarray) or arg.ndim == ndim for arg in args):
-                raise ValueError()
-            if not all(not isinstance(value, np.ndarray) or value.ndim == ndim for value in kwargs.values()):
-                raise ValueError()
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
-
-def _ndim_result(ndim: int) -> callable:
-    assert isinstance(ndim, int) and 0 < ndim
-    def decorator(func: callable) -> callable:
-        def wrapper(*args: any, **kwargs: any) -> NDArray:
-            result = func(*args, **kwargs)
-            if not (isinstance(result, np.ndarray) and result.ndim == ndim):
-                raise ValueError
-            return result
-
-        return wrapper
-
-    return decorator
-
-def _dim_match(func: callable) -> callable:
-    def wrapper(main: NDArray, other: NDArray | float | int) -> NDArray:
-        if isinstance(other, np.ndarray):
-            # check matching dimensions
-            assert main.shape == other.shape
-        return func(main, other)
-
-    return wrapper
-
-def _elementwise_broadcast(func: callable) -> callable:
-    def wrapper(*args: any, **kwargs: any) -> NDArray:
-        two_grad = func(*args, **kwargs)
-        # four broadcast elementwise
-        assert isinstance(two_grad, np.ndarray) and two_grad.ndim == 2
-        # 4D identity creation
-        eye = np.zeros((*two_grad.shape, *two_grad.shape))
-        np.einsum('ijij -> ij', eye, optimize=False)[:] = 1.0
-        # 2D to 4D broadcasting
-        return eye * two_grad[np.newaxis, np.newaxis, :, :]
-
-    return wrapper
-
-def _scalar_broadcast(func: callable) -> callable:
-    def wrapper(*args: any, **kwargs: any) -> NDArray:
-        two_grad = func(*args, **kwargs)
-        # four broadcast scalar
-        assert isinstance(two_grad, np.ndarray) and two_grad.ndim == 2
-        # extend to 4D
-        return two_grad[np.newaxis, np.newaxis, :, :]
-
-    return wrapper
-
 
 class Matrix(_Array):
-    # matrix cache
+    # matrix memory internals
     _cache: list[Matrix | None] = []
+    _prefix: str = 'm'
 
     def __init__(self, obj: any):
         super().__init__(obj=obj, _ndim=2)
@@ -313,20 +277,54 @@ class Matrix(_Array):
 
     def _track_instance(self):
         alt_tracker = {
-            'derivative': self._default_tracker.copy()['derivative'],
-            'relation': self._unpack_ids(self._default_tracker.copy()['relation']),
-            'origin': self._unpack_ids(self._default_tracker.copy()['origin'])
+            'derivative': self._tracker.copy()['derivative'],
+            'relation': self._unpack_ids(self._tracker.copy()['relation']),
+            'origin': self._unpack_ids(self._tracker.copy()['origin'])
         }
         return alt_tracker
 
     @staticmethod
     def _update_track(obj: Matrix, drv: any, rlt: any) -> None:
         # update tracker
-        obj._tracker['drv'].append(drv)
-        obj._tracker['rlt'].append(rlt)
+        obj._tracker['derivative'].append(drv)
+        obj._tracker['relation'].append(rlt)
         return None
 
     class _BaseMethod(ABC):
+        @staticmethod
+        def _update_track(obj: Matrix, drv: any, rlt: any) -> None:
+            # update tracker
+            obj._tracker['derivative'].append(drv)
+            obj._tracker['relation'].append(rlt)
+            return None
+
+        @staticmethod
+        def _ndim(obj: NDArray, ndim: int) -> None:
+            if not (isinstance(obj, np.ndarray) and obj.ndim == ndim):
+                raise ValueError()
+            return None
+
+        @staticmethod
+        def _dim_match(obj_1: NDArray, obj_2: NDArray) -> None:
+            if not (isinstance(obj_1, np.ndarray) and isinstance(obj_2, np.ndarray) and obj_1.shape == obj_2.shape):
+                raise ValueError()
+            return None
+
+        @staticmethod
+        def _elementwise_broadcast(two_grad: NDArray) -> NDArray:
+            assert isinstance(two_grad, np.ndarray) and two_grad.ndim == 2
+            # 4D identity creation
+            eye = np.zeros((*two_grad.shape, *two_grad.shape))
+            np.einsum('ijij -> ij', eye, optimize=False)[:] = 1.0
+            # 2D to 4D broadcasting
+            return eye * two_grad[np.newaxis, np.newaxis, :, :]
+
+        @staticmethod
+        def _scalar_broadcast(two_grad: NDArray) -> NDArray:
+            assert isinstance(two_grad, np.ndarray) and two_grad.ndim == 2
+            # extend to 4D
+            return two_grad[np.newaxis, np.newaxis, :, :]
+
         @staticmethod
         @abstractmethod
         def forward(*args: any, **kwargs: any) -> NDArray:
@@ -342,67 +340,63 @@ class Matrix(_Array):
         def backward_o(*args: any, **kwargs: any) -> NDArray:
             pass
 
+        @classmethod
+        @abstractmethod
+        def _forward(cls, *args: any, **kwargs: any) -> NDArray:
+            pass
+
+        @classmethod
+        @abstractmethod
+        def _backward(cls, *args: any, **kwargs: any) -> NDArray:
+            pass
+
+        @classmethod
+        @abstractmethod
+        def _backward_o(cls, *args: any, **kwargs: any) -> NDArray:
+            pass
+
         @abstractmethod
         def main(self, *args: any, **kwargs: any) -> 'Matrix':
             pass
 
-    class LoneElementWiseMethod(_BaseMethod):
-        @staticmethod
-        @_ndim_arg(ndim=2)
-        def forward(main: NDArray) -> NDArray:
-            raise NotImplementedError()
-
-        @staticmethod
-        @_ndim_arg(ndim=2)
-        @_elementwise_broadcast
-        def backward(main: NDArray) -> NDArray:
-            raise NotImplementedError()
-
-        @staticmethod
-        def backward_o():
-            raise NotImplementedError
-
-        def main(self, main: Matrix) -> Matrix:
-            # check array
-            if not isinstance(main, Matrix):
-                raise TypeError(
-                    "Non-matrix call"
-                )
-            # calculate result
-            result = Matrix(self.forward(main._array))
-            result._tracker['org'] = [main, None]
-            # track main
-            Matrix._update_track(obj=main, drv=self.backward, rlt=[None, result])
-            # return result
-            return result
-
     class ElementWiseMethod(_BaseMethod):
         @staticmethod
-        @_ndim_arg(ndim=2)
-        @_dim_match
-        def forward(main: NDArray, other: NDArray | float | int) -> NDArray:
-            raise NotImplementedError(
-                "Attempted function call without redefinition in subclass.\n"
-                "Either define this call, or avoid referencing it."
-            )
+        @abstractmethod
+        def forward(main: NDArray, other: NDArray) -> NDArray:
+            raise NotImplementedError()
 
         @staticmethod
-        @_ndim_arg(ndim=2)
-        @_elementwise_broadcast
-        def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
-            raise NotImplementedError(
-                "Attempted function call without redefinition in subclass.\n"
-                "Either define this call, or avoid referencing it."
-            )
+        @abstractmethod
+        def backward(main: NDArray, other: NDArray) -> NDArray:
+            raise NotImplementedError()
 
         @staticmethod
-        @_ndim_arg(ndim=2)
-        @_elementwise_broadcast
-        def backward_o(main: NDArray, other: NDArray | float | int) -> NDArray:
-            raise NotImplementedError(
-                "Attempted function call without redefinition in subclass.\n"
-                "Either define this call, or avoid referencing it."
-            )
+        @abstractmethod
+        def backward_o(main: NDArray, other: NDArray) -> NDArray:
+            raise NotImplementedError()
+
+        @classmethod
+        def _forward(cls, main: NDArray, other: NDArray) -> NDArray:
+            cls._ndim(obj=main, ndim=2)
+            cls._ndim(obj=other, ndim=2)
+            cls._dim_match(obj_1 = main, obj_2 = other)
+            result = cls.forward(main, other)
+            cls._ndim(obj=result, ndim=2)
+            return result
+
+        @classmethod
+        def _backward(cls, main: NDArray, other: NDArray) -> NDArray:
+            cls._ndim(obj=main, ndim=2)
+            cls._ndim(obj=other, ndim=2)
+            result = cls.backward(main, other)
+            return cls._elementwise_broadcast(two_grad=result)
+
+        @classmethod
+        def _backward_o(cls, main: NDArray, other: NDArray) -> NDArray:
+            cls._ndim(obj=main, ndim=2)
+            cls._ndim(obj=other, ndim=2)
+            result = cls.backward(main, other)
+            return cls._elementwise_broadcast(two_grad=result)
 
         def main(self, main: Matrix, other: Matrix | NDArray | float | int) -> Matrix:
             # check main array
@@ -421,35 +415,45 @@ class Matrix(_Array):
 
             # calculate result
             result = Matrix(self.forward(main._array, arr))
-            result._tracker['org'] = [main, other]
+            result._tracker['origin'] = [main, other]
             # track main
-            Matrix._update_track(obj=main, drv=self.backward, rlt=[other, result])
+            Matrix._update_track(obj=main, drv=self._backward, rlt=[other, result])
             if isinstance(other, Matrix):
                 # track other
-                Matrix._update_track(obj=other, drv=self.backward_o, rlt=[main, result])
+                Matrix._update_track(obj=other, drv=self._backward_o, rlt=[main, result])
             return result
 
-    class ScalarMethod(_BaseMethod):
+    class LoneElementWiseMethod(_BaseMethod):
         @staticmethod
-        @_ndim_arg(ndim=2)
+        @abstractmethod
         def forward(main: NDArray) -> NDArray:
-            raise NotImplementedError(
-                "Attempted function call without redefinition in subclass.\n"
-                "Either define this call, or avoid referencing it."
-            )
+            raise NotImplementedError()
 
         @staticmethod
-        @_ndim_arg(ndim=2)
-        @_scalar_broadcast
+        @abstractmethod
         def backward(main: NDArray) -> NDArray:
-            raise NotImplementedError(
-                "Attempted function call without redefinition in subclass.\n"
-                "Either define this call, or avoid referencing it."
-            )
+            raise NotImplementedError()
 
         @staticmethod
         def backward_o():
-            raise NotImplementedError
+            raise NotImplementedError()
+
+        @classmethod
+        def _forward(cls, main: NDArray) -> NDArray:
+            cls._ndim(obj=main, ndim=2)
+            result = cls.forward(main)
+            cls._ndim(obj=result, ndim=2)
+            return result
+
+        @classmethod
+        def _backward(cls, main: NDArray) -> NDArray:
+            cls._ndim(obj=main, ndim=2)
+            result = cls.backward(main)
+            return cls._elementwise_broadcast(two_grad=result)
+
+        @classmethod
+        def _backward_o(cls):
+            raise NotImplementedError()
 
         def main(self, main: Matrix) -> Matrix:
             # check array
@@ -459,38 +463,97 @@ class Matrix(_Array):
                 )
             # calculate result
             result = Matrix(self.forward(main._array))
-            result._tracker['org'] = [main, None]
+            result._tracker['origin'] = [main, None]
             # track main
-            Matrix._update_track(obj=main, drv=self.backward, rlt=[None, result])
+            Matrix._update_track(obj=main, drv=self._backward, rlt=[None, result])
+            # return result
+            return result
+
+    class ScalarMethod(_BaseMethod):
+        @staticmethod
+        @abstractmethod
+        def forward(main: NDArray) -> NDArray:
+            raise NotImplementedError()
+
+        @staticmethod
+        @abstractmethod
+        def backward(main: NDArray) -> NDArray:
+            raise NotImplementedError()
+
+        @staticmethod
+        def backward_o():
+            raise NotImplementedError()
+
+        @classmethod
+        def _forward(cls, main: NDArray) -> NDArray:
+            cls._ndim(obj=main, ndim=2)
+            result = cls.forward(main)
+            cls._ndim(obj=result, ndim=2)
+            return result
+
+        @classmethod
+        def _backward(cls, main: NDArray) -> NDArray:
+            cls._ndim(obj=main, ndim=2)
+            result = cls.backward(main)
+            return cls._scalar_broadcast(two_grad=result)
+
+        @classmethod
+        def _backward_o(cls):
+            raise NotImplementedError()
+
+        def main(self, main: Matrix) -> Matrix:
+            # check array
+            if not isinstance(main, Matrix):
+                raise TypeError(
+                    "Non-matrix call"
+                )
+            # calculate result
+            result = Matrix(self.forward(main._array))
+            result._tracker['origin'] = [main, None]
+            # track main
+            Matrix._update_track(obj=main, drv=self._backward, rlt=[None, result])
             # return result
             return result
 
     class CustomMethod(_BaseMethod):
         @staticmethod
-        @_ndim_arg(ndim=2)
+        @abstractmethod
         def forward(main: NDArray, other: NDArray) -> NDArray:
-            raise NotImplementedError(
-                "Attempted function call without redefinition in subclass.\n"
-                "Either define this call, or avoid referencing it."
-            )
+            raise NotImplementedError()
 
         @staticmethod
-        @_ndim_arg(ndim=2)
-        @_ndim_result(ndim=4)
+        @abstractmethod
         def backward(main: NDArray, other: NDArray) -> NDArray:
-            raise NotImplementedError(
-                "Attempted function call without redefinition in subclass.\n"
-                "Either define this call, or avoid referencing it."
-            )
+            raise NotImplementedError()
 
         @staticmethod
-        @_ndim_arg(ndim=2)
-        @_ndim_result(ndim=4)
+        @abstractmethod
         def backward_o(main: NDArray, other: NDArray) -> NDArray:
-            raise NotImplementedError(
-                "Attempted function call without redefinition in subclass.\n"
-                "Either define this call, or avoid referencing it."
-            )
+            raise NotImplementedError()
+
+        @classmethod
+        def _forward(cls, main: NDArray, other: NDArray) -> NDArray:
+            cls._ndim(obj=main, ndim=2)
+            cls._ndim(obj=other, ndim=2)
+            result = cls.forward(main, other)
+            cls._ndim(obj=result, ndim=2)
+            return result
+
+        @classmethod
+        def _backward(cls, main: NDArray, other: NDArray) -> NDArray:
+            cls._ndim(obj=main, ndim=2)
+            cls._ndim(obj=other, ndim=2)
+            result = cls.backward(main, other)
+            cls._ndim(obj=result, ndim=4)
+            return result
+
+        @classmethod
+        def _backward_o(cls, main: NDArray, other: NDArray) -> NDArray:
+            cls._ndim(obj=main, ndim=2)
+            cls._ndim(obj=other, ndim=2)
+            result = cls.backward(main, other)
+            cls._ndim(obj=result, ndim=4)
+            return result
 
         def main(self, main: Matrix, other: Matrix | NDArray | float | int) -> Matrix:
             # check main array
@@ -509,12 +572,12 @@ class Matrix(_Array):
 
             # calculate result
             result = Matrix(self.forward(main._array, arr))
-            result._tracker['org'] = [main, other]
+            result._tracker['origin'] = [main, other]
             # track main
-            Matrix._update_track(obj=main, drv=self.backward, rlt=[other, result])
+            Matrix._update_track(obj=main, drv=self._backward, rlt=[other, result])
             if isinstance(other, Matrix):
                 # track other
-                Matrix._update_track(obj=other, drv=self.backward_o, rlt=[main, result])
+                Matrix._update_track(obj=other, drv=self._backward_o, rlt=[main, result])
             return result
 
     class _MatMul(CustomMethod):
@@ -643,8 +706,9 @@ class Matrix(_Array):
 
 
 class Gradient(_Array):
-    # gradient cache
+    # gradient memory internals
     _cache: list[Gradient | None] = []
+    _prefix: str = 'g'
 
     def __init__(self, obj: any, *, _override: bool = False):
         assert _override
@@ -653,7 +717,7 @@ class Gradient(_Array):
         self._tracker = self._default_tracker.copy()
 
     def _track_instance(self):
-        alt_tracker = {'chain': self._unpack_ids(self._default_tracker.copy()['chain'])}
+        alt_tracker = {'chain': self._unpack_ids(self._tracker.copy()['chain'])}
         return alt_tracker
 
     def reduce_grad(self) -> Matrix:
@@ -730,7 +794,7 @@ class Gradient(_Array):
             strm_result = [Matrix.reference(rlt[1]) for rlt in up.tracker['relation']]
             strm_other = [Matrix.reference(rlt[0]) for rlt in up.tracker['relation']]
             # get operation
-            drv_operator = up.tracker['drv'][strm_result.index(down)]
+            drv_operator = up.tracker['derivative'][strm_result.index(down)]
             other = strm_other[strm_result.index(down)]
 
             if isinstance(other, Matrix):
