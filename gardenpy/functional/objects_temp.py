@@ -16,26 +16,11 @@ from warnings import warn
 import numpy as np
 from numpy.typing import NDArray
 
-# from .operators_2 import inf_remove
+from .raw_operators import inf_remove
 from ..utils.errors import TrackingError
 
 # generic array type T
 T = TypeVar('T', bound='_Array')
-
-
-def inf_remove(*, inf_val: float | int = 1e10) -> callable:
-    assert isinstance(inf_val, float | int) and 0 < inf_val
-
-    def decorator(func: callable) -> callable:
-        def wrapper(*args: any, **kwargs: any) -> NDArray:
-            array = func(*args, **kwargs)
-            assert isinstance(array, np.ndarray)
-            # inf to inf_val
-            return np.where(np.isposinf(array), inf_val, np.where(np.isneginf(array), -inf_val, array))
-
-        return wrapper
-
-    return decorator
 
 
 class _Array(ABC):
@@ -86,6 +71,12 @@ class _Array(ABC):
             self._tags.remove(tag)
         elif not _Array._ikwiad:
             warn("", UserWarning)
+
+    @property
+    def shape(self) -> tuple[int, ...] | None:
+        if not self._is_valid_array(itm=self):
+            return None
+        return self._array.shape
 
     @property
     def tracker(self) -> dict[str, T | list | str | None] | None:
@@ -395,7 +386,7 @@ class Matrix(_Array):
         def _backward_o(cls, main: NDArray, other: NDArray) -> NDArray:
             cls._ndim(obj=main, ndim=2)
             cls._ndim(obj=other, ndim=2)
-            result = cls.backward(main, other)
+            result = cls.backward_o(other, main)  # note: this is weird, but might work
             return cls._elementwise_broadcast(two_grad=result)
 
         def main(self, main: Matrix, other: Matrix | NDArray | float | int) -> Matrix:
@@ -551,7 +542,7 @@ class Matrix(_Array):
         def _backward_o(cls, main: NDArray, other: NDArray) -> NDArray:
             cls._ndim(obj=main, ndim=2)
             cls._ndim(obj=other, ndim=2)
-            result = cls.backward(main, other)
+            result = cls.backward_o(other, main)  # note: this is also super weird
             cls._ndim(obj=result, ndim=4)
             return result
 

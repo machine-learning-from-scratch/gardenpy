@@ -16,6 +16,7 @@ from warnings import warn
 import numpy as np
 from numpy.typing import NDArray
 
+
 from ..utils.errors import TrackingError
 
 T = TypeVar('T', bound='_Array')
