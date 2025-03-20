@@ -9,12 +9,10 @@ b2 = Matrix([[16, 17]])
 arr1 = m1 @ w1 + b1
 arr2 = arr1 @ w2 + b2
 
-# print([itm.tracker for itm in Matrix._cache])
-# print([f"{itm}\n" for itm in Matrix._cache])
-
 g1 = Gradient.nabla(w2, arr2)
 g2 = Gradient.nabla(b2, arr2)
 g3 = Gradient.nabla(w1, arr2)
 g4 = Gradient.nabla(b1, arr2)
 
-print(g4.shape)
+print(Matrix.cache_debug())
+print(Gradient.cache_debug())

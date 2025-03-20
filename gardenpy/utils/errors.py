@@ -6,17 +6,14 @@ Contains:
     - :class:`TrackingError`
 """
 
-from typing import Optional
-
-
 class MissingMethodError(Exception):
-    r"""**Error for a missing method.**"""
+    r"""**Missing method.**"""
     pass
 
 
 class TrackingError(Exception):
-    r"""**Error for unsuccessful tracking in autograd.**"""
-    def __init__(self, grad, wrt, *, message: Optional[str] = None):
+    r"""**Unsuccessful autodiff tracking.**"""
+    def __init__(self, grad, wrt, *, message: str | None = None):
         r"""
         **Error references.**
 
