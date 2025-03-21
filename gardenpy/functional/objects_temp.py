@@ -278,7 +278,7 @@ class _Array(ABC):
 
     @abstractmethod
     def _track_instance(self) -> dict:
-        raise NotImplementedError("_track_instance must be implemented in subclasses for external tracker references.")
+        raise NotImplementedError("_track_instance must be implemented in subclasses for external internal references.")
 
 
 ########################################################################################################################
@@ -353,11 +353,11 @@ class Matrix(_Array):
         obj._tracker['relation'].append(relation)
         return None
 
-    class _BaseMethod(ABC):
+    class _MethodCollection:
         @staticmethod
-        def _ndim(obj: NDArray, ndim: int) -> None:
+        def _ndim(obj: NDArray | float | int, ndim: int, force_arr: bool = True) -> None:
             assert isinstance(ndim, int) and 0 < ndim, "Internal ndim must be a positive integer."
-            if not (isinstance(obj, np.ndarray) and obj.ndim == ndim):
+            if force_arr and not (isinstance(obj, np.ndarray) and obj.ndim == ndim):
                 raise ValueError(
                     "Failed initialization: Passed object was either not a numpy array or didn't have ndim dimensions. "
                     f"Passed object was type {type(obj)} with dimensions "
@@ -367,8 +367,10 @@ class Matrix(_Array):
             return None
 
         @staticmethod
-        def _dim_match(obj_1: NDArray, obj_2: NDArray) -> None:
-            if not (isinstance(obj_1, np.ndarray) and isinstance(obj_2, np.ndarray) and obj_1.shape == obj_2.shape):
+        def _dim_match(obj_1: NDArray, obj_2: NDArray, force_arr: bool = True) -> None:
+            if not force_arr and not isinstance(obj_2, np.ndarray):
+                return None
+            elif not (isinstance(obj_1, np.ndarray) and isinstance(obj_2, np.ndarray) and obj_1.shape == obj_2.shape):
                 raise ValueError(
                     "Failed matching: Passed objects were either not both numpy arrays or didn't match shapes. "
                     f"Objects were {type(obj_1)} and {type(obj_2)} respectively. "
@@ -392,130 +394,146 @@ class Matrix(_Array):
             # extend to 4D
             return two_grad[np.newaxis, np.newaxis, :, :]
 
+    class _PairedBaseMethod(_MethodCollection, ABC):
+        # todo: docstrings
         @staticmethod
         @abstractmethod
-        def forward(*args: any, **kwargs: any) -> NDArray:
-            pass
-
-        @staticmethod
-        @abstractmethod
-        def backward(*args: any, **kwargs: any) -> NDArray:
+        def forward(main: NDArray, other: NDArray | float | int) -> NDArray:
             pass
 
         @staticmethod
         @abstractmethod
-        def backward_o(*args: any, **kwargs: any) -> NDArray:
-            pass
-
-        @classmethod
-        @abstractmethod
-        def _forward(cls, *args: any, **kwargs: any) -> NDArray:
-            pass
-
-        @classmethod
-        @abstractmethod
-        def _backward(cls, *args: any, **kwargs: any) -> NDArray:
-            pass
-
-        @classmethod
-        @abstractmethod
-        def _backward_o(cls, *args: any, **kwargs: any) -> NDArray:
-            pass
-
-        @abstractmethod
-        def main(self, *args: any, **kwargs: any) -> 'Matrix':
-            pass
-
-    class _LoneBaseMethod(_BaseMethod):
-        @staticmethod
-        @abstractmethod
-        def forward(*args: any, **kwargs: any) -> NDArray:
+        def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
             pass
 
         @staticmethod
         @abstractmethod
-        def backward(*args: any, **kwargs: any) -> NDArray:
+        def other_backward(main: NDArray, other: NDArray) -> NDArray:
             pass
 
         @staticmethod
-        def backward_o(*args: any, **kwargs: any) -> NDArray:
+        @abstractmethod
+        def _forward(main: NDArray, other: NDArray | float | int) -> NDArray:
+            pass
+
+        @staticmethod
+        @abstractmethod
+        def _backward(main: NDArray, other: NDArray | float | int) -> NDArray:
+            pass
+
+        @staticmethod
+        @abstractmethod
+        def _other_backward(main: NDArray, other: NDArray) -> NDArray:
+            pass
+
+        @abstractmethod
+        def main(self, main: Matrix, other: Matrix | NDArray | float | int) -> Matrix:
+            pass
+
+    class _LoneBaseMethod(_MethodCollection, ABC):
+        # todo: docstrings
+        @staticmethod
+        @abstractmethod
+        def forward(main: NDArray) -> NDArray:
+            pass
+
+        @staticmethod
+        @abstractmethod
+        def backward(main: NDArray) -> NDArray:
+            pass
+
+        @staticmethod
+        @abstractmethod
+        def _forward(main: NDArray) -> NDArray:
+            pass
+
+        @staticmethod
+        @abstractmethod
+        def _backward(main: NDArray) -> NDArray:
+            pass
+
+        @abstractmethod
+        def main(self, main: Matrix) -> Matrix:
+            pass
+
+    class ElementWiseMethod(_PairedBaseMethod):
+        @staticmethod
+        @abstractmethod
+        def forward(main: NDArray, other: NDArray | float | int) -> NDArray:
             raise NotImplementedError(
-                "Invalid call: backward_o is never defined for lone methods."
+                "Missing implementation: "
+                "Forward method wasn't implemented and is required for this method type."
+            )
+
+        @staticmethod
+        @abstractmethod
+        def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
+            raise NotImplementedError(
+                "Missing implementation: "
+                "Backward method wasn't implemented and is required for this method type."
+            )
+
+        @staticmethod
+        @abstractmethod
+        def other_backward(main: NDArray, other: NDArray) -> NDArray:
+            raise NotImplementedError(
+                "Missing implementation: "
+                "Other backward method wasn't implemented and is required for this method type."
             )
 
         @classmethod
-        @abstractmethod
-        def _forward(cls, *args: any, **kwargs: any) -> NDArray:
-            pass
-
-        @classmethod
-        @abstractmethod
-        def _backward(cls, *args: any, **kwargs: any) -> NDArray:
-            pass
-
-        @classmethod
-        def _backward_o(cls, *args: any, **kwargs: any) -> NDArray:
-            raise NotImplementedError(
-                "Invalid call: _backward_o is never defined for lone methods."
-            )
-
-        @abstractmethod
-        def main(self, *args: any, **kwargs: any) -> 'Matrix':
-            pass
-
-    class ElementWiseMethod(_BaseMethod):
-        @staticmethod
-        @abstractmethod
-        def forward(main: NDArray, other: NDArray) -> NDArray:
-            raise NotImplementedError()
-
-        @staticmethod
-        @abstractmethod
-        def backward(main: NDArray, other: NDArray) -> NDArray:
-            raise NotImplementedError()
-
-        @staticmethod
-        @abstractmethod
-        def backward_o(main: NDArray, other: NDArray) -> NDArray:
-            raise NotImplementedError()
-
-        @classmethod
-        def _forward(cls, main: NDArray, other: NDArray) -> NDArray:
-            cls._ndim(obj=main, ndim=2)
-            cls._ndim(obj=other, ndim=2)
-            cls._dim_match(obj_1=main, obj_2=other)
+        def _forward(cls, main: NDArray, other: NDArray | float | int) -> NDArray:
+            # check input dims
+            cls._ndim(obj=main, ndim=2, force_arr=True)
+            cls._ndim(obj=other, ndim=2, force_arr=False)
+            cls._dim_match(obj_1=main, obj_2=other, force_arr=False)
+            # forward method call
             result = cls.forward(main, other)
+            # check output dims
             cls._ndim(obj=result, ndim=2)
             return result
 
         @classmethod
-        def _backward(cls, main: NDArray, other: NDArray) -> NDArray:
-            cls._ndim(obj=main, ndim=2)
-            cls._ndim(obj=other, ndim=2)
+        def _backward(cls, main: NDArray, other: NDArray | float | int) -> NDArray:
+            # check input dims
+            cls._ndim(obj=main, ndim=2, force_arr=True)
+            cls._ndim(obj=other, ndim=2, force_arr=False)
+            # backward method call
             result = cls.backward(main, other)
+            # broadcast elementwise output
             return cls._elementwise_broadcast(two_grad=result)
 
         @classmethod
-        def _backward_o(cls, main: NDArray, other: NDArray) -> NDArray:
-            cls._ndim(obj=main, ndim=2)
-            cls._ndim(obj=other, ndim=2)
-            result = cls.backward_o(other, main)  # note: this is weird, but might work
+        def _other_backward(cls, main: NDArray, other: NDArray) -> NDArray:
+            # check input dims
+            cls._ndim(obj=main, ndim=2, force_arr=True)
+            cls._ndim(obj=other, ndim=2, force_arr=True)
+            # other backward method call
+            result = cls.other_backward(other, main)
             return cls._elementwise_broadcast(two_grad=result)
 
         def main(self, main: Matrix, other: Matrix | NDArray | float | int) -> Matrix:
             # check main array
             if not isinstance(main, Matrix):
                 raise TypeError(
-                    "..."
+                    "Invalid type: Main object expected type Matrix. "
+                    "This method can be run with the Gradient if func:`reduce_grad` is used to convert "
+                    "the Gradient into a Matrix. "
+                    f"Received type {type(main)}."
                 )
 
-            # set array
+            # set other array
             if isinstance(other, Matrix):
                 arr = other._array
             elif isinstance(other, np.ndarray | float | int):
                 arr = other
             else:
-                raise TypeError()
+                raise TypeError(
+                    "Invalid type: Other object expected type Matrix, numpy array, float, or integer. "
+                    "This method can be run with the Gradient if func:`reduce_grad` is used to convert "
+                    "the Gradient into a Matrix. "
+                    f"Received type {type(other)}."
+                )
 
             # calculate result
             result = Matrix(self.forward(main._array, arr))
@@ -524,30 +542,36 @@ class Matrix(_Array):
             Matrix._update_track(obj=main, derivative=self._backward, relation=[other, result])
             if isinstance(other, Matrix):
                 # track other
-                Matrix._update_track(obj=other, derivative=self._backward_o, relation=[main, result])
+                Matrix._update_track(obj=other, derivative=self._other_backward, relation=[main, result])
             return result
 
     class LoneElementWiseMethod(_LoneBaseMethod):
         @staticmethod
         @abstractmethod
         def forward(main: NDArray) -> NDArray:
-            raise NotImplementedError()
+            raise NotImplementedError(
+                "Missing implementation: "
+                "Forward method wasn't implemented and is required for this method type."
+            )
 
         @staticmethod
         @abstractmethod
         def backward(main: NDArray) -> NDArray:
-            raise NotImplementedError()
+            raise NotImplementedError(
+                "Missing implementation: "
+                "Backward method wasn't implemented and is required for this method type."
+            )
 
         @classmethod
         def _forward(cls, main: NDArray) -> NDArray:
-            cls._ndim(obj=main, ndim=2)
+            cls._ndim(obj=main, ndim=2, force_arr=True)
             result = cls.forward(main)
-            cls._ndim(obj=result, ndim=2)
+            cls._ndim(obj=result, ndim=2, force_arr=True)
             return result
 
         @classmethod
         def _backward(cls, main: NDArray) -> NDArray:
-            cls._ndim(obj=main, ndim=2)
+            cls._ndim(obj=main, ndim=2, force_arr=True)
             result = cls.backward(main)
             return cls._elementwise_broadcast(two_grad=result)
 
@@ -555,7 +579,10 @@ class Matrix(_Array):
             # check array
             if not isinstance(main, Matrix):
                 raise TypeError(
-                    "Non-matrix call"
+                    "Invalid type: Main object expected type Matrix. "
+                    "This method can be run with the Gradient if func:`reduce_grad` is used to convert "
+                    "the Gradient into a Matrix. "
+                    f"Received type {type(main)}."
                 )
             # calculate result
             result = Matrix(self.forward(main._array))
@@ -569,23 +596,29 @@ class Matrix(_Array):
         @staticmethod
         @abstractmethod
         def forward(main: NDArray) -> NDArray:
-            raise NotImplementedError()
+            raise NotImplementedError(
+                "Missing implementation: "
+                "Forward method wasn't implemented and is required for this method type."
+            )
 
         @staticmethod
         @abstractmethod
         def backward(main: NDArray) -> NDArray:
-            raise NotImplementedError()
+            raise NotImplementedError(
+                "Missing implementation: "
+                "Backward method wasn't implemented and is required for this method type."
+            )
 
         @classmethod
         def _forward(cls, main: NDArray) -> NDArray:
-            cls._ndim(obj=main, ndim=2)
+            cls._ndim(obj=main, ndim=2, force_arr=True)
             result = cls.forward(main)
-            cls._ndim(obj=result, ndim=2)
+            cls._ndim(obj=result, ndim=2, force_arr=True)
             return result
 
         @classmethod
         def _backward(cls, main: NDArray) -> NDArray:
-            cls._ndim(obj=main, ndim=2)
+            cls._ndim(obj=main, ndim=2, force_arr=True)
             result = cls.backward(main)
             return cls._scalar_broadcast(two_grad=result)
 
@@ -593,7 +626,10 @@ class Matrix(_Array):
             # check array
             if not isinstance(main, Matrix):
                 raise TypeError(
-                    "Non-matrix call"
+                    "Invalid type: Main object expected type Matrix. "
+                    "This method can be run with the Gradient if func:`reduce_grad` is used to convert "
+                    "the Gradient into a Matrix. "
+                    f"Received type {type(main)}."
                 )
             # calculate result
             result = Matrix(self.forward(main._array))
@@ -603,60 +639,77 @@ class Matrix(_Array):
             # return result
             return result
 
-    class CustomMethod(_BaseMethod):
+    class CustomMethod(_PairedBaseMethod):
         @staticmethod
         @abstractmethod
-        def forward(main: NDArray, other: NDArray) -> NDArray:
-            raise NotImplementedError()
+        def forward(main: NDArray, other: NDArray | float | int) -> NDArray:
+            raise NotImplementedError(
+                "Missing implementation: "
+                "Forward method wasn't implemented and is required for this method type."
+            )
 
         @staticmethod
         @abstractmethod
-        def backward(main: NDArray, other: NDArray) -> NDArray:
-            raise NotImplementedError()
+        def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
+            raise NotImplementedError(
+                "Missing implementation: "
+                "Backward method wasn't implemented and is required for this method type."
+            )
 
         @staticmethod
         @abstractmethod
-        def backward_o(main: NDArray, other: NDArray) -> NDArray:
-            raise NotImplementedError()
+        def other_backward(main: NDArray, other: NDArray) -> NDArray:
+            raise NotImplementedError(
+                "Missing implementation: "
+                "Other backward method wasn't implemented and is required for this method type."
+            )
 
         @classmethod
         def _forward(cls, main: NDArray, other: NDArray) -> NDArray:
-            cls._ndim(obj=main, ndim=2)
-            cls._ndim(obj=other, ndim=2)
+            cls._ndim(obj=main, ndim=2, force_arr=True)
+            cls._ndim(obj=other, ndim=2, force_arr=True)
             result = cls.forward(main, other)
-            cls._ndim(obj=result, ndim=2)
+            cls._ndim(obj=result, ndim=2, force_arr=True)
             return result
 
         @classmethod
         def _backward(cls, main: NDArray, other: NDArray) -> NDArray:
-            cls._ndim(obj=main, ndim=2)
-            cls._ndim(obj=other, ndim=2)
+            cls._ndim(obj=main, ndim=2, force_arr=True)
+            cls._ndim(obj=other, ndim=2, force_arr=True)
             result = cls.backward(main, other)
-            cls._ndim(obj=result, ndim=4)
+            cls._ndim(obj=result, ndim=4, force_arr=True)
             return result
 
         @classmethod
-        def _backward_o(cls, main: NDArray, other: NDArray) -> NDArray:
-            cls._ndim(obj=main, ndim=2)
-            cls._ndim(obj=other, ndim=2)
-            result = cls.backward_o(other, main)  # note: this is also super weird
-            cls._ndim(obj=result, ndim=4)
+        def _other_backward(cls, main: NDArray, other: NDArray) -> NDArray:
+            cls._ndim(obj=main, ndim=2, force_arr=True)
+            cls._ndim(obj=other, ndim=2, force_arr=True)
+            result = cls.other_backward(other, main)
+            cls._ndim(obj=result, ndim=4, force_arr=True)
             return result
 
         def main(self, main: Matrix, other: Matrix | NDArray | float | int) -> Matrix:
             # check main array
             if not isinstance(main, Matrix):
                 raise TypeError(
-                    "..."
+                    "Invalid type: Main object expected type Matrix. "
+                    "This method can be run with the Gradient if func:`reduce_grad` is used to convert "
+                    "the Gradient into a Matrix. "
+                    f"Received type {type(main)}."
                 )
 
-            # set array
+            # set other array
             if isinstance(other, Matrix):
                 arr = other._array
             elif isinstance(other, np.ndarray | float | int):
                 arr = other
             else:
-                raise TypeError()
+                raise TypeError(
+                    "Invalid type: Other object expected type Matrix, numpy array, float, or integer. "
+                    "This method can be run with the Gradient if func:`reduce_grad` is used to convert "
+                    "the Gradient into a Matrix. "
+                    f"Received type {type(other)}."
+                )
 
             # calculate result
             result = Matrix(self.forward(main._array, arr))
@@ -665,19 +718,25 @@ class Matrix(_Array):
             Matrix._update_track(obj=main, derivative=self._backward, relation=[other, result])
             if isinstance(other, Matrix):
                 # track other
-                Matrix._update_track(obj=other, derivative=self._backward_o, relation=[main, result])
+                Matrix._update_track(obj=other, derivative=self._other_backward, relation=[main, result])
             return result
 
     class LoneCustomMethod(_LoneBaseMethod):
         @staticmethod
         @abstractmethod
         def forward(main: NDArray) -> NDArray:
-            raise NotImplementedError()
+            raise NotImplementedError(
+                "Missing implementation: "
+                "Forward method wasn't implemented and is required for this method type."
+            )
 
         @staticmethod
         @abstractmethod
         def backward(main: NDArray) -> NDArray:
-            raise NotImplementedError()
+            raise NotImplementedError(
+                "Missing implementation: "
+                "Backward method wasn't implemented and is required for this method type."
+            )
 
         @classmethod
         def _forward(cls, main: NDArray) -> NDArray:
@@ -697,7 +756,10 @@ class Matrix(_Array):
             # check array
             if not isinstance(main, Matrix):
                 raise TypeError(
-                    "Non-matrix call"
+                    "Invalid type: Main object expected type Matrix. "
+                    "This method can be run with the Gradient if func:`reduce_grad` is used to convert "
+                    "the Gradient into a Matrix. "
+                    f"Received type {type(main)}."
                 )
             # calculate result
             result = Matrix(self.forward(main._array))
@@ -707,6 +769,7 @@ class Matrix(_Array):
             # return result
             return result
 
+    # built-in methods
     class _MatMul(CustomMethod):
         @staticmethod
         def forward(main: NDArray, other: NDArray) -> NDArray:
@@ -719,80 +782,80 @@ class Matrix(_Array):
             return four_concat * eye
 
         @staticmethod
-        def backward_o(main: NDArray, other: NDArray) -> NDArray:
+        def other_backward(main: NDArray, other: NDArray) -> NDArray:
             four_concat = main[:, np.newaxis, :, np.newaxis]
             eye = np.eye(other.shape[1])[np.newaxis, :, np.newaxis, :]
             return four_concat * eye
 
     class _Pow(ElementWiseMethod):
         @staticmethod
-        def forward(main: NDArray, other: NDArray) -> NDArray:
+        def forward(main: NDArray, other: NDArray | float | int) -> NDArray:
             return main ** other
 
         @staticmethod
         @inf_remove(inf_val=1e10)
-        def backward(main: NDArray, other: NDArray) -> NDArray:
+        def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
             two_grad = other * (main ** (other - 1.0))
             return two_grad
 
         @staticmethod
         @inf_remove(inf_val=1e10)
-        def backward_o(main: NDArray, other: NDArray) -> NDArray:
+        def other_backward(main: NDArray, other: NDArray) -> NDArray:
             two_grad = np.log(main) * (main ** other)
             return two_grad
 
     class _Mul(ElementWiseMethod):
         @staticmethod
-        def forward(main: NDArray, other: NDArray) -> NDArray:
+        def forward(main: NDArray, other: NDArray | float | int) -> NDArray:
             return main * other
 
         @staticmethod
-        def backward(main: NDArray, other: NDArray) -> NDArray:
+        def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
             return other
 
         @staticmethod
-        def backward_o(main: NDArray, other: NDArray) -> NDArray:
+        def other_backward(main: NDArray, other: NDArray) -> NDArray:
             return main
 
     class _TrueDiv(ElementWiseMethod):
         @staticmethod
-        def forward(main: NDArray, other: NDArray) -> NDArray:
+        def forward(main: NDArray, other: NDArray | float | int) -> NDArray:
             return main / other
 
         @staticmethod
         @inf_remove(inf_val=1e10)
-        def backward(main: NDArray, other: NDArray) -> NDArray:
+        def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
             return other ** -1.0
 
         @staticmethod
         @inf_remove(inf_val=1e10)
-        def backward_o(main: NDArray, other: NDArray) -> NDArray:
+        def other_backward(main: NDArray, other: NDArray) -> NDArray:
             return -main / other ** 2.0
 
     class _Add(ElementWiseMethod):
         @staticmethod
-        def forward(main: NDArray, other: NDArray) -> NDArray:
+        def forward(main: NDArray, other: NDArray | float | int) -> NDArray:
             return main + other
 
         @staticmethod
-        def backward(main: NDArray, other: NDArray) -> NDArray:
+        def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
             return np.ones(main.shape)
 
         @staticmethod
-        def backward_o(main: NDArray, other: NDArray) -> NDArray:
+        def other_backward(main: NDArray, other: NDArray) -> NDArray:
             return np.ones(other.shape)
 
     class _Sub(ElementWiseMethod):
         @staticmethod
-        def forward(main: NDArray, other: NDArray) -> NDArray:
+        def forward(main: NDArray, other: NDArray | float | int) -> NDArray:
             return main - other
 
         @staticmethod
-        def backward(main: NDArray, other: NDArray) -> NDArray:
+        def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
             return np.ones(main.shape)
 
         @staticmethod
-        def backward_o(main: NDArray, other: NDArray) -> NDArray:
+        def other_backward(main: NDArray, other: NDArray) -> NDArray:
             return -np.ones(other.shape)
 
     # internal instance
@@ -877,9 +940,8 @@ class Gradient(_Array):
             if trace is None:
                 # reset trace
                 trace = []
-            # NB: This only gets origins if the item is a matrix.
-            # Tracing gradients through gradients is possible, but requires a lot of modification and significantly
-            # increases computational time, even if it's never used.
+            # NB: This only traces through the Matrix object.
+            # Non-Matrix objects are still used in computation if necessary.
             if binary and relation is None and isinstance(item, Matrix):
                 # get origins
                 origins = [Matrix.reference(org) for org in item.tracker['origin']]
