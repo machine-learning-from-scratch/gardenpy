@@ -3,10 +3,12 @@ from numpy.typing import NDArray
 
 
 def inf_remove(*, inf_val: float | int = 1e10) -> callable:
+    # check inf_val
     assert isinstance(inf_val, float | int) and 0 < inf_val
 
     def decorator(func: callable) -> callable:
         def wrapper(*args: any, **kwargs: any) -> NDArray:
+            # forward func
             array = func(*args, **kwargs)
             assert isinstance(array, np.ndarray)
             # inf to inf_val

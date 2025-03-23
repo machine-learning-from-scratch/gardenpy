@@ -14,5 +14,23 @@ g2 = Gradient.nabla(b2, arr2)
 g3 = Gradient.nabla(w1, arr2)
 g4 = Gradient.nabla(b1, arr2)
 
-print(Matrix.cache_debug())
-print(Gradient.cache_debug())
+m_cache_raw = Matrix.cache_debug()
+g_cache_raw = Gradient.cache_debug()
+
+for itm in m_cache_raw:
+    keys = itm.keys()
+    vals = itm.values()
+    for key, val in zip(keys, vals):
+        print(f"{key}: {val}")
+    print()
+
+for itm in g_cache_raw:
+    keys = itm.keys()
+    vals = itm.values()
+    for key, val in zip(keys, vals):
+        print(f"{key}: {val}")
+    print()
+
+print(m_cache_raw)
+print(g_cache_raw)
+
