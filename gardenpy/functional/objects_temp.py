@@ -129,17 +129,55 @@ class _Tensor(ABC):
 
     @property
     def shape(self) -> tuple[int, ...] | None:
+        r"""
+        **Tensor's shape.**
+
+        Returns:
+            tuple | None: Tensor's shape.
+
+        Raises:
+            UserWarning: The function is used on a deleted Tensor.
+                Turned off by toggling ikwiad.
+                See :func:`_Tensor.ikwiad`.
+        """
         if not self._is_valid_tensor(itm=self):
             return None
         return self._tensor.shape
 
     @property
     def tags(self) -> list[str]:
+        r"""
+        **Tensor's tags.**""
+
+        Returns:
+            list: Tensor's tags.
+
+        Note:
+            Certain tags perform behavior alteration.
+            'retain' retains the Tensor if :func:`_Tensor.reset` is run.
+            'track retain' retains the tracker on a Matrix-type _Tensor if :func:`Matrix.track_retain` is run.
+
+        Raises:
+            UserWarning: The function is used on a deleted Tensor.
+                Turned off by toggling ikwiad.
+                See :func:`_Tensor.ikwiad`.
+        """
         self._is_valid_tensor(itm=self)
         return self._tags
 
     @property
     def tracker(self) -> dict[str, T | list | str | None] | None:
+        r"""
+        **Tensor's internal tracker.**
+
+        Returns:
+            dict | None: Dictionary of a Tensor's tracker and ID.
+
+        Raises:
+            UserWarning: The function is used on a deleted Tensor.
+                Turned off by toggling ikwiad.
+                See :func:`_Tensor.ikwiad`.
+        """
         if not self._is_valid_tensor(itm=self):
             # invalid tensor
             return None
@@ -157,6 +195,17 @@ class _Tensor(ABC):
 
     @property
     def internals(self) -> dict[str, T | list | str | None] | None:
+        r"""
+        **Tensor's full internals.**
+
+        Returns:
+            dict | None: Dictionary of a Tensor's full internals.
+
+        Raises:
+            UserWarning: The function is used on a deleted Tensor.
+                Turned off by toggling ikwiad.
+                See :func:`_Tensor.ikwiad`.
+        """
         if not self._is_valid_tensor(itm=self):
             # invalid tensor
             return None
@@ -173,16 +222,55 @@ class _Tensor(ABC):
         return {'id': self.id, 'tags': self._tags, 'shape': self.shape, **alt_tracker}
 
     def add_tag(self, tag: str) -> None:
+        r"""
+        **Add a tag to a Tensor's tags.**
+
+        Args:
+            tag (str): Added tag.
+
+        Raises:
+            UserWarning: The function is used on a deleted Tensor.
+                Turned off by toggling ikwiad.
+                See :func:`_Tensor.ikwiad`.
+        """
         self._is_valid_tensor(itm=self)
         self._tags.append(str(tag))
+        return None
 
     def remove_tag(self, tag: str) -> None:
+        r"""
+        **Removes a tag to a Tensor's tags.**
+
+        Args:
+            tag (str): Removed tag.
+
+        Raises:
+            UserWarning: The function is used on a deleted Tensor.
+                Turned off by toggling ikwiad.
+                See :func:`_Tensor.ikwiad`.
+
+            UserWarning: Removed tag doesn't exist in the Tensor's tags.
+                Turned off by toggling ikwiad.
+                See :func:`_Tensor.ikwiad`.
+        """
+        self._is_valid_tensor(itm=self)
         if tag in self._tags:
             self._tags.remove(str(tag))
         elif not _Tensor._ikwiad:
             warn(f"Referenced tag ({tag}) wasn't found in the in the instances tags ({self._tags}).", UserWarning)
+        return None
 
     def instance_reset(self) -> None:
+        r"""
+        **Reset a Tensor.**
+
+        Removes all identifying features of a Tensor, including its value, and opens its spot within the instance list.
+
+        Raises:
+            UserWarning: The function is used on a deleted Tensor.
+                Turned off by toggling ikwiad.
+                See :func:`_Tensor.ikwiad`.
+        """
         if self._is_valid_tensor(itm=self):
             # clear cache location
             self.__class__._cache[self._id] = None
@@ -195,22 +283,59 @@ class _Tensor(ABC):
 
     @classmethod
     def cache(cls) -> list[str | None]:
+        r"""
+        **Tensor subclass's cache.**
+
+        Returns:
+            list: All Tensor instances referenced by ID.
+        """
         # subclass caches
         return [itm.id if itm is not None else None for itm in cls._cache]
 
     @classmethod
     def cache_debug(cls) -> list[dict | None]:
+        r"""
+        **Tensor full subclass's cache.**
+
+        A full cache of the subclass's cache with each item displaying its full internals.
+
+        Returns:
+            list: All Tensor instances with full internals.
+        """
         # subclass internal caches
         return [itm.internals if itm is not None else None for itm in cls._cache]
 
     @classmethod
     def reference(cls, idx: str | int) -> T:
+        r"""
+        **Gets Tensor from an index reference.**
+
+        Args:
+            idx (str | int): Index reference to a Tensor in the cache.
+
+        Returns:
+            Tensor: Referenced Tensor.
+
+        Raises:
+            ValueError: Invalid Tensor reference.
+            TypeError: Invalid reference type or deleted Tensor reference.
+        """
         # reference tensors
         tensor, _ = cls._reference_tensor(itm=idx)
         return tensor
 
     @classmethod
     def reset(cls, *args: T | str | None) -> None:
+        r"""
+        **Resets Tensor instances.**
+
+        Note:
+            If 'retain' is in a Tensor's tags, the Tensor will be automatically saved.
+            To delete this Tensor, either manually reset it using :func:`_Tensor.instance_reset` or remove 'retain'.
+
+        Args:
+            *args (Tensor | str | None, optional): Tensors to save.
+        """
         # saved tensors
         args = list(args)
         arg_ids = []
@@ -228,6 +353,13 @@ class _Tensor(ABC):
 
     @classmethod
     def ikwiad(cls, ikwiad: bool | None = None) -> None:
+        r"""
+        **Turns off warning messages ("I know what I am doing" - ikwiad).**
+
+        Args:
+            ikwiad (bool): ikwiad state.
+                If no state is given, ikwiad will switch states.
+        """
         if ikwiad is None:
             # switch ikwiad
             _Tensor._ikwiad = not _Tensor._ikwiad
