@@ -5,6 +5,11 @@ w1 = Matrix([[1, 2, 3], [4, 5, 6]])
 b1 = Matrix([[7, 8, 9]])
 w2 = Matrix([[10, 11], [12, 13], [14, 15]])
 b2 = Matrix([[16, 17]])
+m1.add_tag('m1')
+w1.add_tag('w1')
+b1.add_tag('b1')
+w2.add_tag('w2')
+b2.add_tag('b2')
 
 arr1 = m1 @ w1 + b1
 arr2 = arr1 @ w2 + b2
@@ -33,4 +38,3 @@ for itm in g_cache_raw:
 
 print(m_cache_raw)
 print(g_cache_raw)
-

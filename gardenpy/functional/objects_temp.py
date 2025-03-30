@@ -24,6 +24,18 @@ T = TypeVar('T', bound='_Tensor')
 
 
 class _Tensor(ABC):
+    r"""
+    **GardenPy's base Tensor.**
+
+    Includes all base operations and subclass structure, including :class:`Matrix` and :class:`Gradient`.
+    _Tensor is an abstract base class and should never be instantiated; only subclasses should be instantiated.
+    Creation of subclasses will create a reference within the object's cache.
+
+    Note:
+        Tensor subclasses will cache instances of themselves.
+        These caches don't automatically clear and will cause memory leaks.
+        They should be cleared using :func:`_Tensor.reset`.
+    """
     # ikwiad
     _ikwiad: bool = False
     # base memory internals
@@ -31,8 +43,25 @@ class _Tensor(ABC):
     _prefix: str = '_'
 
     def __init__(self, obj: any, *, _ndim: int):
+        r"""
+        **Tensor creation.**
+
+        Creates a Tensor subclass with default internals and caches instance.
+        Should only be run with subclasses.
+
+        Args:
+            obj (any): Object to be turned into a Tensor.
+            _ndim (int), 0 < _ndim: Allowed dimensions of Tensor object.
+
+        Raises:
+            TypeError: Object wasn't an _ndim-dimensional array consisting of only real numbers.
+            AssertionError: Invalid _ndim argument.
+
+        Note:
+            All objects will undergo NumPy array conversion.
+        """
         # verify object
-        assert isinstance(_ndim, int) and 0 < _ndim, "Internal ndim must be a positive integer."
+        assert isinstance(_ndim, int) and 0 < _ndim, "_ndim must be a positive integer."
         obj = np.array(obj)
         if not np.issubdtype(obj.dtype, np.number) or obj.ndim != _ndim:
             # NB: Current implementation forces Matrix to be 2D and Gradient to be 4D.
@@ -63,36 +92,51 @@ class _Tensor(ABC):
 
     @property
     def id(self) -> str | None:
+        r"""
+        **Tensor ID.**
+
+        ID correlating to its position within the class's cache.
+
+        Returns:
+            str | None: Current Tensor ID.
+                Returns None if the function is used on a deleted Tensor.
+
+        Raises:
+            UserWarning: The function is used on a deleted Tensor.
+                Turned off by toggling ikwiad.
+                See :func:`_Tensor.ikwiad`.
+        """
         if not self._is_valid_tensor(itm=self):
             return None
         return f"{self.__class__._prefix}{hex(self._id)}"
 
     @property
     def tensor(self) -> NDArray | None:
+        r"""
+        **Tensor's internal NumPy array.**
+
+        Returns:
+            np.ndarray | None: Tensor's internal NumPy array.
+                Returns None if the function is used on a deleted Tensor.
+
+        Raises:
+            UserWarning: The function is used on a deleted Tensor.
+                Turned off by toggling ikwiad.
+                See :func:`_Tensor.ikwiad`.
+        """
         self._is_valid_tensor(itm=self)
         return self._tensor
-
-    @property
-    def tags(self) -> list[str]:
-        self._is_valid_tensor(itm=self)
-        return self._tags
-
-    @tags.setter
-    def tags(self, tag: str) -> None:
-        self._is_valid_tensor(itm=self)
-        self._tags.append(str(tag))
-
-    def remove_tag(self, tag: str) -> None:
-        if tag in self._tags:
-            self._tags.remove(str(tag))
-        elif not _Tensor._ikwiad:
-            warn(f"Referenced tag ({tag}) wasn't found in the in the instances tags ({self._tags}).", UserWarning)
 
     @property
     def shape(self) -> tuple[int, ...] | None:
         if not self._is_valid_tensor(itm=self):
             return None
         return self._tensor.shape
+
+    @property
+    def tags(self) -> list[str]:
+        self._is_valid_tensor(itm=self)
+        return self._tags
 
     @property
     def tracker(self) -> dict[str, T | list | str | None] | None:
@@ -128,12 +172,87 @@ class _Tensor(ABC):
         # full internals
         return {'id': self.id, 'tags': self._tags, 'shape': self.shape, **alt_tracker}
 
+    def add_tag(self, tag: str) -> None:
+        self._is_valid_tensor(itm=self)
+        self._tags.append(str(tag))
+
+    def remove_tag(self, tag: str) -> None:
+        if tag in self._tags:
+            self._tags.remove(str(tag))
+        elif not _Tensor._ikwiad:
+            warn(f"Referenced tag ({tag}) wasn't found in the in the instances tags ({self._tags}).", UserWarning)
+
+    def instance_reset(self) -> None:
+        if self._is_valid_tensor(itm=self):
+            # clear cache location
+            self.__class__._cache[self._id] = None
+            # reset internals
+            self._id = None
+            self._tensor = None
+            self._tracker = None
+            self._tags.append('deleted')
+        return None
+
+    @classmethod
+    def cache(cls) -> list[str | None]:
+        # subclass caches
+        return [itm.id if itm is not None else None for itm in cls._cache]
+
+    @classmethod
+    def cache_debug(cls) -> list[dict | None]:
+        # subclass internal caches
+        return [itm.internals if itm is not None else None for itm in cls._cache]
+
+    @classmethod
+    def reference(cls, idx: str | int) -> T:
+        # reference tensors
+        tensor, _ = cls._reference_tensor(itm=idx)
+        return tensor
+
+    @classmethod
+    def reset(cls, *args: T | str | None) -> None:
+        # saved tensors
+        args = list(args)
+        arg_ids = []
+        for arg in args:
+            _, arg_id = cls._reference_tensor(itm=arg)
+        # removed tensors
+        removed_tensors = [
+            itm for i, itm in enumerate(cls._cache)
+            if i not in arg_ids and itm is not None and 'retain' not in itm._tags
+        ]
+        for instance in removed_tensors:
+            # reset removed tensors
+            instance.instance_reset()
+        return None
+
+    @classmethod
+    def ikwiad(cls, ikwiad: bool | None = None) -> None:
+        if ikwiad is None:
+            # switch ikwiad
+            _Tensor._ikwiad = not _Tensor._ikwiad
+            return None
+        # set ikwiad
+        _Tensor._ikwiad = bool(ikwiad)
+        return None
+
+    @staticmethod
+    def _is_valid_tensor(itm: T) -> bool:
+        if itm._id is not None:
+            # valid tensor
+            return True
+        else:
+            # invalid tensor
+            if not _Tensor._ikwiad:
+                warn("Reference was made to a non-valid Tensor type.", UserWarning)
+            return False
+
     @classmethod
     def _add_cache(cls, itm: T) -> None:
         try:
             # unused cache location
             open_id = cls._cache.index(None)
-            itm._global_id = open_id
+            itm._id = open_id
             cls._cache[open_id] = itm
         except ValueError:
             # new cache location
@@ -199,71 +318,6 @@ class _Tensor(ABC):
         _Tensor._ikwiad = user_ikwiad
         return itm, itm_id
 
-    @classmethod
-    def reset(cls, *args: T | str | None) -> None:
-        # saved tensors
-        args = list(args)
-        arg_ids = []
-        for arg in args:
-            _, arg_id = cls._reference_tensor(itm=arg)
-        # removed tensors
-        removed_tensors = [
-            itm for i, itm in enumerate(cls._cache)
-            if i not in arg_ids and itm is not None and 'retain' not in itm._tags
-        ]
-        for instance in removed_tensors:
-            # reset removed tensors
-            instance.instance_reset()
-        return None
-
-    @classmethod
-    def reference(cls, idx: str | int) -> T:
-        # reference tensors
-        tensor, _ = cls._reference_tensor(itm=idx)
-        return tensor
-
-    @classmethod
-    def cache(cls) -> list[str | None]:
-        # subclass caches
-        return [itm.id if itm is not None else None for itm in cls._cache]
-
-    @classmethod
-    def cache_debug(cls) -> list[dict | None]:
-        # subclass internal caches
-        return [itm.internals if itm is not None else None for itm in cls._cache]
-
-    @classmethod
-    def ikwiad(cls, ikwiad: bool | None = None) -> None:
-        if ikwiad is None:
-            # switch ikwiad
-            _Tensor._ikwiad = not _Tensor._ikwiad
-            return None
-        # set ikwiad
-        _Tensor._ikwiad = bool(ikwiad)
-        return None
-
-    def instance_reset(self) -> None:
-        if self._is_valid_tensor(itm=self):
-            # clear cache location
-            self.__class__._cache[self._id] = None
-            # reset internals
-            self._id = None
-            self._tensor = None
-            self._tracker = None
-            self._tags.append('deleted')
-        return None
-
-    @staticmethod
-    def _is_valid_tensor(itm: T) -> bool:
-        if itm._id is not None:
-            # valid tensor
-            return True
-        else:
-            # invalid tensor
-            if not _Tensor._ikwiad:
-                warn("Reference was made to a non-valid Tensor type.", UserWarning)
-            return False
-
     def _unpack_ids(self, itm: T | list | property | None) -> list | str | float| int | None:
         if isinstance(itm, _Tensor):
             # id reference
@@ -298,16 +352,16 @@ class Matrix(_Tensor):
         self._default_tracker = {'derivative': [], 'relation': [], 'origin': []}
         self._tracker = self._default_tracker.copy()
 
-    def copy(self) -> Matrix | None:
-        if self._is_valid_tensor(itm=self):
-            # duplicate matrix
-            return Matrix(obj=self._tensor)
-        return None
-
     def instance_track_reset(self) -> None:
         if self._is_valid_tensor(itm=self):
             # reset tracker
             self._tracker = self._default_tracker.copy()
+        return None
+
+    def copy(self) -> Matrix | None:
+        if self._is_valid_tensor(itm=self):
+            # duplicate matrix
+            return Matrix(obj=self._tensor)
         return None
 
     @classmethod
@@ -360,15 +414,15 @@ class Matrix(_Tensor):
         @staticmethod
         def _ndim(obj: any, ndim: int, force_arr: bool = True) -> None:
             # check ndim
-            assert isinstance(ndim, int) and 0 < ndim, "Internal ndim must be a positive integer."
+            assert isinstance(ndim, int) and 0 < ndim, "ndim must be a positive integer."
             if force_arr and not (isinstance(obj, np.ndarray) and obj.ndim == ndim):
                 # ndim mismatch
                 raise ValueError(
-                    f"Failed initialization: Passed object was either not a numpy array"
+                    f"Failed initialization: Passed object was either not a NumPy array"
                     f" or didn't have ndim dimensions. "
                     f"Received object of type {type(obj)} with dimensions "
                     f"{'NULL' if not isinstance(obj, np.ndarray) else obj.ndim}. "
-                    f"Expected a numpy array with ndim {ndim}."
+                    f"Expected a NumPy array with ndim {ndim}."
                 )
             return None
 
@@ -380,7 +434,7 @@ class Matrix(_Tensor):
             elif obj_1.shape != obj_2.shape:
                 # shape mismatch
                 raise ValueError(
-                    f"Failed matching: Passed objects were either not both numpy arrays or didn't match shapes. "
+                    f"Failed matching: Passed objects were either not both NumPy arrays or didn't match shapes. "
                     f"Received objects {type(obj_1)} and {type(obj_2)} respectively. "
                     f"Object 1 had dimensions {'NULL' if not isinstance(obj_1, np.ndarray) else obj_1.ndim}. "
                     f"Object 2 had dimensions {'NULL' if not isinstance(obj_2, np.ndarray) else obj_2.ndim}. "
@@ -426,7 +480,7 @@ class Matrix(_Tensor):
 
         @staticmethod
         def _elementwise_broadcast(two_grad: NDArray) -> NDArray:
-            assert isinstance(two_grad, np.ndarray) and two_grad.ndim == 2, "two_grad must be a 2D numpy array."
+            assert isinstance(two_grad, np.ndarray) and two_grad.ndim == 2, "two_grad must be a 2D NumPy array."
             # 4D identity creation
             eye = np.zeros((*two_grad.shape, *two_grad.shape))
             np.einsum('ijij -> ij', eye, optimize=False)[:] = 1.0
@@ -435,7 +489,7 @@ class Matrix(_Tensor):
 
         @staticmethod
         def _scalar_broadcast(two_grad: NDArray) -> NDArray:
-            assert isinstance(two_grad, np.ndarray) and two_grad.ndim == 2, "two_grad must be a 2D numpy array."
+            assert isinstance(two_grad, np.ndarray) and two_grad.ndim == 2, "two_grad must be a 2D NumPy array."
             # extend to 4D
             return two_grad[np.newaxis, np.newaxis, :, :]
 
@@ -444,16 +498,37 @@ class Matrix(_Tensor):
         @staticmethod
         @abstractmethod
         def forward(main: NDArray | float | int, other: NDArray | float | int) -> NDArray:
+            r"""
+            Args:
+                main:
+                other:
+
+            Returns:
+            """
             pass
 
         @staticmethod
         @abstractmethod
         def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
+            r"""
+            Args:
+                main:
+                other:
+
+            Returns:
+            """
             pass
 
         @staticmethod
         @abstractmethod
         def other_backward(main: NDArray | float | int, other: NDArray) -> NDArray:
+            r"""
+            Args:
+                main:
+                other:
+
+            Returns:
+            """
             pass
 
         @staticmethod
@@ -473,33 +548,33 @@ class Matrix(_Tensor):
 
         def main(self, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
             # set main matrix
-            if isinstance(main, Matrix):
+            if isinstance(main, Matrix) and Matrix._is_valid_tensor(itm=main):
                 main_val = main._tensor
             elif isinstance(main, np.ndarray | float | int):
                 main_val = main
             else:
                 raise TypeError(
-                    f"Invalid type: Main object expected type Matrix, numpy array, float, or integer. "
+                    f"Invalid type: Main object expected valid type Matrix, NumPy array, float, or integer. "
                     f"This method can be run with the Gradient if func:`reduce_grad` is used to convert "
                     f"the Gradient into a Matrix. "
                     f"Received type {type(other)}."
                 )
 
             # set other matrix
-            if isinstance(other, Matrix):
+            if isinstance(other, Matrix) and Matrix._is_valid_tensor(itm=main):
                 other_val = other._tensor
             elif isinstance(other, np.ndarray | float | int):
                 other_val = other
             else:
                 raise TypeError(
-                    f"Invalid type: Other object expected type Matrix, numpy array, float, or integer. "
+                    f"Invalid type: Other object expected valid type Matrix, NumPy array, float, or integer. "
                     f"This method can be run with the Gradient if func:`reduce_grad` is used to convert "
                     f"the Gradient into a Matrix. "
                     f"Received type {type(other)}."
                 )
 
             # calculate result
-            result = Matrix(self._forward(main_val, other_val))
+            result = Matrix(self._forward(main=main_val, other=other_val))
             result._tracker['origin'] = [main, other]
             if isinstance(other, Matrix):
                 # track main
@@ -533,15 +608,15 @@ class Matrix(_Tensor):
 
         def main(self, main: Matrix) -> Matrix:
             # check array
-            if not isinstance(main, Matrix):
+            if not isinstance(main, Matrix) and Matrix._is_valid_tensor(itm=main):
                 raise TypeError(
-                    f"Invalid type: Main object expected type Matrix. "
+                    f"Invalid type: Main object expected valid type Matrix. "
                     f"This method can be run with the Gradient if func:`reduce_grad` is used to convert "
                     f"the Gradient into a Matrix. "
                     f"Received type {type(main)}."
                 )
             # calculate result
-            result = Matrix(self._forward(main._tensor))
+            result = Matrix(self._forward(main=main._tensor))
             result._tracker['origin'] = [main, None]
             # track main
             Matrix._update_track(obj=main, derivative=self._backward, relation=[None, result])
@@ -589,23 +664,24 @@ class Matrix(_Tensor):
 
         @classmethod
         def _backward(cls, main: NDArray, other: NDArray | float | int) -> NDArray:
-            # check input dims
-            cls._ndim(obj=main, ndim=2, force_arr=True)
-            cls._ndim(obj=other, ndim=2, force_arr=False)
-            cls._num_arr(main, other, force_arr=False)
+            # check input
+            cls._num_arr(main, force_arr=True)
             # backward method call
             result = cls.backward(main, other)
+            # check output
+            cls._num_arr(result, force_arr=True)
             # broadcast elementwise output
             return cls._elementwise_broadcast(two_grad=result)
 
         @classmethod
         def _other_backward(cls, main: NDArray | float | int, other: NDArray) -> NDArray:
-            # check input dims
-            cls._ndim(obj=main, ndim=2, force_arr=False)
-            cls._ndim(obj=other, ndim=2, force_arr=True)
-            cls._num_arr(main, other, force_arr=False)
+            # check input
+            cls._num_arr(other, force_arr=True)
             # other backward method call
             result = cls.other_backward(other, main)
+            # check output
+            cls._num_arr(result, force_arr=True)
+            # broadcast elementwise output
             return cls._elementwise_broadcast(two_grad=result)
 
     class LoneElementWiseMethod(_LoneBaseMethod):
@@ -627,15 +703,23 @@ class Matrix(_Tensor):
 
         @classmethod
         def _forward(cls, main: NDArray) -> NDArray:
+            # check input
             cls._ndim(obj=main, ndim=2, force_arr=True)
+            cls._num_arr(main, force_arr=True)
+            # forward method call
             result = cls.forward(main)
+            # check output
             cls._ndim(obj=result, ndim=2, force_arr=True)
+            cls._num_arr(result, force_arr=True)
             return result
 
         @classmethod
         def _backward(cls, main: NDArray) -> NDArray:
-            cls._ndim(obj=main, ndim=2, force_arr=True)
+            # backward method call
             result = cls.backward(main)
+            # check output
+            cls._num_arr(result, force_arr=True)
+            # broadcast elementwise output
             return cls._elementwise_broadcast(two_grad=result)
 
     class ScalarMethod(_LoneBaseMethod):
@@ -657,16 +741,24 @@ class Matrix(_Tensor):
 
         @classmethod
         def _forward(cls, main: NDArray) -> NDArray:
+            # check input
             cls._ndim(obj=main, ndim=2, force_arr=True)
+            cls._num_arr(main, force_arr=True)
+            # forward method call
             result = cls.forward(main)
+            # check output
             cls._ndim(obj=result, ndim=2, force_arr=True)
+            cls._num_arr(result, force_arr=True)
             cls._scalar_arr(obj=result, force_arr=True)
             return result
 
         @classmethod
         def _backward(cls, main: NDArray) -> NDArray:
-            cls._ndim(obj=main, ndim=2, force_arr=True)
+            # backward method call
             result = cls.backward(main)
+            # check output
+            cls._num_arr(result, force_arr=True)
+            # broadcast elementwise output
             return cls._scalar_broadcast(two_grad=result)
 
     class CustomMethod(_PairedBaseMethod):
@@ -696,27 +788,38 @@ class Matrix(_Tensor):
 
         @classmethod
         def _forward(cls, main: NDArray | float | int, other: NDArray | float | int) -> NDArray:
+            # check input
             cls._ndim(obj=main, ndim=2, force_arr=False)
             cls._ndim(obj=other, ndim=2, force_arr=False)
             cls._req_arr(obj_1=main, obj_2=other)
+            cls._num_arr(main, other, force_arr=False)
+            # forward method call
             result = cls.forward(main, other)
+            # check output
             cls._ndim(obj=result, ndim=2, force_arr=True)
+            cls._num_arr(result, force_arr=True)
             return result
 
         @classmethod
         def _backward(cls, main: NDArray, other: NDArray | float | int) -> NDArray:
-            cls._ndim(obj=main, ndim=2, force_arr=True)
-            cls._ndim(obj=other, ndim=2, force_arr=False)
+            # check input
+            cls._num_arr(main, force_arr=True)
+            # backward method call
             result = cls.backward(main, other)
+            # check output
             cls._ndim(obj=result, ndim=4, force_arr=True)
+            cls._num_arr(result, force_arr=True)
             return result
 
         @classmethod
         def _other_backward(cls, main: NDArray | float | int, other: NDArray) -> NDArray:
-            cls._ndim(obj=main, ndim=2, force_arr=False)
-            cls._ndim(obj=other, ndim=2, force_arr=True)
+            # check input
+            cls._num_arr(other, force_arr=True)
+            # other backward method call
             result = cls.other_backward(other, main)
+            # check output
             cls._ndim(obj=result, ndim=4, force_arr=True)
+            cls._num_arr(result, force_arr=True)
             return result
 
     class LoneCustomMethod(_LoneBaseMethod):
@@ -738,15 +841,22 @@ class Matrix(_Tensor):
 
         @classmethod
         def _forward(cls, main: NDArray) -> NDArray:
+            # check input
             cls._ndim(obj=main, ndim=2, force_arr=True)
+            cls._num_arr(main, force_arr=True)
+            # forward method call
             result = cls.forward(main)
+            # check output
             cls._ndim(obj=result, ndim=2, force_arr=True)
+            cls._num_arr(result, force_arr=True)
             return result
 
         @classmethod
         def _backward(cls, main: NDArray) -> NDArray:
-            cls._ndim(obj=main, ndim=2, force_arr=True)
+            # backward method call
             result = cls.backward(main)
+            # check output
+            cls._num_arr(result, force_arr=True)
             cls._ndim(obj=result, ndim=4, force_arr=True)
             return result
 
@@ -850,26 +960,32 @@ class Matrix(_Tensor):
     # raw method calls
     @classmethod
     def rmatmul(cls, main: Matrix | NDArray, other: Matrix | NDArray) -> Matrix:
+        r"""**Raw matrix multiplication.**"""
         return cls._matmul.main(main, other)
 
     @classmethod
     def rpow(cls, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
+        r"""Raw Hadamard power."""
         return cls._pow.main(main, other)
 
     @classmethod
     def rmul(cls, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
+        r"""Raw Hadamard multiplication."""
         return cls._mul.main(main, other)
 
     @classmethod
     def rtruediv(cls, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
+        r"""Raw Hadamard division."""
         return cls._truediv.main(main, other)
 
     @classmethod
     def radd(cls, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
+        r"""Raw addition."""
         return cls._add.main(main, other)
 
     @classmethod
     def rsub(cls, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
+        r"""Raw subtraction."""
         return cls._sub.main(main, other)
 
     # dunder
@@ -913,15 +1029,17 @@ class Gradient(_Tensor):
         self._default_tracker = {'chain': []}
         self._tracker = self._default_tracker.copy()
 
+    def reduce_grad(self) -> Matrix | None:
+        if self._is_valid_tensor(itm=self):
+            return Matrix(np.sum(self._tensor, axis=(0, 1)))
+        return None
+
     def _track_instance(self):
         alt_tracker = {'chain': self._unpack_ids(self._tracker.copy()['chain'])}
         return alt_tracker
 
-    def reduce_grad(self) -> Matrix:
-        return Matrix(np.sum(self._tensor, axis=(0, 1)))
-
     @staticmethod
-    def _chain_opr(down: NDArray, up: NDArray) -> NDArray:
+    def _chain_opr(up: NDArray, down: NDArray) -> NDArray:
         # 6D downstream expansion
         down = down[:, :, :, :, np.newaxis, np.newaxis]
         # 6D upstream expansion
@@ -932,12 +1050,16 @@ class Gradient(_Tensor):
     @staticmethod
     def nabla(grad: Matrix, wrt: Matrix, *, binary: bool = True) -> Gradient:
         # check matrices
-        if not isinstance(grad, Matrix):
+        if not isinstance(grad, Matrix) and Matrix._is_valid_tensor(itm=grad):
             raise TypeError(
-                ...
+                f"Invalid type: Gradient calculation can only be done with valid Matrix objects. "
+                f"Received grad object of type {type(grad)}."
             )
-        if not isinstance(wrt, Matrix):
-            raise TypeError
+        if not isinstance(wrt, Matrix) and Matrix._is_valid_tensor(itm=wrt):
+            raise TypeError(
+                f"Invalid type: Gradient calculation can only be done with valid Matrix objects. "
+                f"Received wrt object of type {type(grad)}."
+            )
 
         # initialize relation
         relation = None
@@ -945,6 +1067,8 @@ class Gradient(_Tensor):
             relation = []
 
         def _relate(item, target, trace=None):
+            # NB: This finds relations by going upstream.
+            # The final calculation uses this upstream order, while the chain is stored downstream.
             nonlocal relation
             if trace is None:
                 # reset trace
@@ -953,7 +1077,7 @@ class Gradient(_Tensor):
             # Non-Matrix objects are still used in computation if necessary.
             if binary and relation is None and isinstance(item, Matrix):
                 # get origins
-                origins = [Matrix.reference(org) for org in item.tracker['origin']]
+                origins = [Matrix.reference(idx=org) for org in item.tracker['origin']]
                 trace.append(item)
                 if target in origins:
                     # related
@@ -961,7 +1085,7 @@ class Gradient(_Tensor):
                     relation = trace.copy()
                 else:
                     # continue search
-                    [_relate(item=origin, target=target, trace=trace) for origin in origins]
+                    [_relate(item=origin, target=target, trace=trace.copy()) for origin in origins]
             elif not binary and isinstance(item, Matrix):
                 # get origins
                 origins = [Matrix.reference(org) for org in item.tracker['origin']]
@@ -972,25 +1096,25 @@ class Gradient(_Tensor):
                     relation.append(trace.copy())
                 else:
                     # continue search
-                    [_relate(item=origin, target=target, trace=trace) for origin in origins]
+                    [_relate(item=origin, target=target, trace=trace.copy()) for origin in origins]
 
-        # relate tensors
+        # relate matrices
         _relate(wrt, grad)
         if not relation:
             # no relation
             raise TrackingError(grad=grad, wrt=wrt, message=(
                 f"No relation could be found between {grad.id} and {wrt.id}.\n"
-                "This might be due to:\n"
-                "   No clear relation between the Tensors.\n"
-                "   Accidental clearing of trackers.\n"
-                "   Deletion of Tensors.\n"
-                "   Accidental reference to the wrong Tensor."
+                f"This might be due to:\n"
+                f"   No clear relation between the Matrices.\n"
+                f"   Accidental clearing of trackers.\n"
+                f"   Deletion of intermediate Matrices.\n"
+                f"   Accidental reference to the wrong Matrix."
             ))
 
-        def _derive(down: Matrix, up: Matrix) -> Gradient:
+        def _derive(up: Matrix, down: Matrix) -> NDArray:
             # get relations
-            strm_result = [Matrix.reference(rlt[1]) for rlt in up.tracker['relation']]
-            strm_other = [Matrix.reference(rlt[0]) for rlt in up.tracker['relation']]
+            strm_result = [Matrix.reference(idx=rlt_itm[1]) for rlt_itm in up.tracker['relation']]
+            strm_other = [Matrix.reference(idx=rlt_itm[0]) for rlt_itm in up.tracker['relation']]
             # get operation
             drv_operator = up.tracker['derivative'][strm_result.index(down)]
             other = strm_other[strm_result.index(down)]
@@ -1001,88 +1125,75 @@ class Gradient(_Tensor):
             # calculate local gradient
             try:
                 # pair derivative method
-                res = drv_operator(up._tensor, other)
+                res = drv_operator(main=up._tensor, other=other)
             except TypeError:
                 # lone derivative method
-                res = drv_operator(up._tensor)
-
-            # gradient conversion
-            res = Gradient(obj=res, _override=True)
-
-            # local gradient setup
-            res._tracker['chain'] += [down, up]  # todo: this order is reversed from the mathematical notation
+                res = drv_operator(main=up._tensor)
             return res
 
-        # linear connection override
-        linear_override = False
-        if not binary and len(relation) != 1:
-            linear_override = True  # todo: this can be deprecated relatively quickly
+        # NB: Automatic chain-ruling occurs back to front.
+        # This is fastest with most NN-type architectures.
         if binary:
-            # calculate initial gradients
-            result = _derive(down=relation[-2], up=relation[-1])
-            del relation[-1]
+            # initial and final non-nested
+            chain = [grad] + [relation.copy()[-2:0:-1]] + [wrt]
+            chain = [chn for chn in chain if chn]
+            # calculate initial gradient
+            result = _derive(up=relation[1], down=relation[0])
+            del relation[0]
             while 1 < len(relation):
                 # chain rule gradients
-                result = Gradient.chain(down=_derive(down=relation[-2], up=relation[-1]), up=result)
-                del relation[-1]
+                result = Gradient._chain_opr(up=_derive(up=relation[1], down=relation[0]), down=result)
+                del relation[0]
         else:
-            # accumulate gradients
+            # add gradients
             grads = []
-            grad_itms = []
-            track = None
-            for itm in relation:
-                # todo: this correctly chains in reverse order, but needs to be rewritten to support the above restruct
-                # note: it might be worthwhile to allow the user to specify the order in which auto chain-rule occurs?
-                op_res = _derive(down=itm[-2], up=itm[-1])
-                del itm[-1]
-                while 1 < len(itm):
-                    # chain rule gradients
-                    op_res = Gradient.chain(down=_derive(down=itm[-2], up=itm[-1]), up=op_res)
-                    del itm[-1]
-                grads.append(op_res._tensor)
-                grad_itms.append(op_res)
-                track = op_res._tracker
+            # initial and final non-nested
+            chain = [grad] + [[rlt[-2:0:-1] for rlt in relation.copy() if rlt]] + [wrt]
+            for rlt in relation:
+                # calculate initial local gradient
+                op_res = _derive(up=rlt[1], down=rlt[0])
+                del rlt[0]
+                while 1 < len(rlt):
+                    # chain rule local gradients
+                    op_res = Gradient._chain_opr(up=_derive(up=rlt[1], down=rlt[0]), down=op_res)
+                    del rlt[0]
+                grads.append(op_res)
             result = 0
-            for grad, itm in zip(grads, grad_itms):
+            for grad in grads:
+                # accumulate alternate-path gradients
                 result += grad
-                itm.instance_reset()
-            result = Gradient(obj=result, _override=True)
-            result._tracker = track
 
         # return final gradient
-        if linear_override:
-            result._tags.append('linear override')
+        result = Gradient(obj=result, _override=True)
+        result._tracker['chain'] = chain
         return result
 
     @staticmethod
-    def chain(down: Gradient, up: Gradient) -> Gradient:
-        if not isinstance(down, Gradient):
+    def chain(up: Gradient, down: Gradient) -> Gradient:
+        # check gradients
+        if not isinstance(up, Gradient) and Gradient._is_valid_tensor(itm=up):
             raise TypeError(
-                "Attempted chain-rule calculation with down object that was either "
-                "not a Tensor or not a gradient subtype."
+                f"Invalid type: Chain-ruling can only be done with valid Gradient objects. "
+                f"Received up object of type {type(down)}."
             )
-        if not isinstance(up, Gradient):
+        if not isinstance(down, Gradient) and Gradient._is_valid_tensor(itm=up):
             raise TypeError(
-                "Attempted chain-rule calculation with up object that was either "
-                "not a Tensor or not a gradient subtype."
+                f"Invalid type: Chain-ruling can only be done with valid Gradient objects. "
+                f"Received down object of type {type(down)}."
             )
 
         # check relation
-        down_relation = down._tracker['chain'][-1]
-        up_relation = up._tracker['chain'][0]
-        if down_relation != up_relation:
+        if up._tracker['chain'][-1] != down._tracker['chain'][0]:
             raise TrackingError(grad=down, wrt=up, message=(
                 f"No relation could be found between {down.id} and {up.id}.\n"
-                "This might be due to:\n"
-                "   No clear relation between the Tensors.\n"
-                "   Accidental clearing of trackers.\n"
-                "   Deletion of Tensors.\n"
-                "   Accidental reference to the wrong Tensor."
+                f"This might be due to:\n"
+                f"   No immediate link between Gradients.\n"
+                f"   Accidental reference to the wrong Gradient."
             ))
 
         # chain-rule gradients
-        result = Gradient(obj=Gradient._chain_opr(down=down._tensor, up=up._tensor), _override=True)
+        result = Gradient(obj=Gradient._chain_opr(up=up._tensor, down=down._tensor), _override=True)
         # set gradient internals
-        result._tracker['chain'] = down._tracker['chain'] + up._tracker['chain'][1:]
+        result._tracker['chain'] = up._tracker['chain'][:-1] + down._tracker['chain']
         # return final gradient
         return result
