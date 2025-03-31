@@ -1,7 +1,7 @@
 r"""
 **GardenPy objects.**
 
-Core objects for the garden library.
+Core objects for the GardenPy library.
 
 Contains:
     - class:`_Tensor`
