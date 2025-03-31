@@ -19,10 +19,14 @@ from numpy.typing import NDArray
 from .raw_operators import inf_remove
 from ..utils.errors import TrackingError
 
-# tensor type T
+# generic tensor type T
 T = TypeVar('T', bound='_Tensor')
 
 
+# NB: Subclassed _Tensors requires internal setup.
+# Make sure to redefine the internal _cache for each subclass.
+# Additionally, redefine the _prefix and keep it distinct from other subclasses to reduce confusion.
+# Finally, define the _default_tracker and set the _tracker for each subclass.
 class _Tensor(ABC):
     r"""
     **GardenPy's base Tensor.**
@@ -49,7 +53,7 @@ class _Tensor(ABC):
         Creates a Tensor subclass with default internals and caches instance.
         Should only be run with subclasses.
 
-        Args:
+        Parameters:
             obj (any): Object to be turned into a Tensor.
             _ndim (int), 0 < _ndim: Allowed dimensions of Tensor object.
 
@@ -152,15 +156,15 @@ class _Tensor(ABC):
         Returns:
             list: Tensor's tags.
 
-        Note:
-            Certain tags perform behavior alteration.
-            'retain' retains the Tensor if :func:`_Tensor.reset` is run.
-            'track retain' retains the tracker on a Matrix-type _Tensor if :func:`Matrix.track_retain` is run.
-
         Raises:
             UserWarning: The function is used on a deleted Tensor.
                 Turned off by toggling ikwiad.
                 See :func:`_Tensor.ikwiad`.
+
+        Note:
+            Certain tags perform behavior alteration.
+            'retain' retains the Tensor if :func:`_Tensor.reset` is run.
+            'track retain' retains the tracker on a Matrix-type _Tensor if :func:`Matrix.track_retain` is run.
         """
         self._is_valid_tensor(itm=self)
         return self._tags
@@ -225,7 +229,7 @@ class _Tensor(ABC):
         r"""
         **Add a tag to a Tensor's tags.**
 
-        Args:
+        Parameters:
             tag (str): Added tag.
 
         Raises:
@@ -241,7 +245,7 @@ class _Tensor(ABC):
         r"""
         **Removes a tag to a Tensor's tags.**
 
-        Args:
+        Parameters:
             tag (str): Removed tag.
 
         Raises:
@@ -293,7 +297,7 @@ class _Tensor(ABC):
         return [itm.id if itm is not None else None for itm in cls._cache]
 
     @classmethod
-    def cache_debug(cls) -> list[dict | None]:
+    def cache_debug(cls) -> list[dict[str, T | list | str | None] | None]:
         r"""
         **Tensor full subclass's cache.**
 
@@ -310,7 +314,7 @@ class _Tensor(ABC):
         r"""
         **Gets Tensor from an index reference.**
 
-        Args:
+        Parameters:
             idx (str | int): Index reference to a Tensor in the cache.
 
         Returns:
@@ -329,12 +333,12 @@ class _Tensor(ABC):
         r"""
         **Resets Tensor instances.**
 
+        Parameters:
+            *args (Tensor | str | None): Tensors to save.
+
         Note:
             If 'retain' is in a Tensor's tags, the Tensor will be automatically saved.
-            To delete this Tensor, either manually reset it using :func:`_Tensor.instance_reset` or remove 'retain'.
-
-        Args:
-            *args (Tensor | str | None, optional): Tensors to save.
+            To delete this Tensor, either reset it using :func:`_Tensor.instance_reset` or remove 'retain'.
         """
         # saved tensors
         args = list(args)
@@ -356,7 +360,7 @@ class _Tensor(ABC):
         r"""
         **Turns off warning messages ("I know what I am doing" - ikwiad).**
 
-        Args:
+        Parameters:
             ikwiad (bool): ikwiad state.
                 If no state is given, ikwiad will switch states.
         """
@@ -450,7 +454,7 @@ class _Tensor(ABC):
         _Tensor._ikwiad = user_ikwiad
         return itm, itm_id
 
-    def _unpack_ids(self, itm: T | list | property | None) -> list | str | float| int | None:
+    def _unpack_ids(self, itm: T | list | property | None) -> list | str | float | int | None:
         if isinstance(itm, _Tensor):
             # id reference
             return itm.id
@@ -474,30 +478,94 @@ class _Tensor(ABC):
 
 
 class Matrix(_Tensor):
+    r"""
+    **GardenPy's Matrix.**
+
+    Two-dimensional Tensor subclass that allows operation tracking and creation of auto-differentiable functions.
+    Automatically creates a computational graph and utilizes tape-base automatic differentiation.
+    Gradients themselves are calculated and stored within :class:`Gradient`.
+
+    This Tensor subclass includes methods required for making automatic-differentiable functions.
+    To create such a function, inherit one of the base-functions and define the required methods.
+    To utilize automatic-differentiation, use the main function.
+
+    Note:
+        Autograd methods can be created by inheriting a Matrix method class.
+        These will automatically modify internals, which shouldn't be edited externally.
+    """
     # matrix memory internals
     _cache: list[Matrix | None] = []
     _prefix: str = 'm'
 
     def __init__(self, obj: any):
+        r"""
+        **Matrix creation.**
+
+        Creates a Matrix with default internals and caches instance.
+
+        Parameters:
+            obj (any): Object to be turned into a Matrix.
+
+        Raises:
+            TypeError: Object wasn't a two-dimensional array consisting of only real numbers.
+
+        Note:
+            All objects will undergo NumPy array conversion.
+        """
         super().__init__(obj=obj, _ndim=2)
         # matrix subclass internals
         self._default_tracker = {'derivative': [], 'relation': [], 'origin': []}
         self._tracker = self._default_tracker.copy()
 
     def instance_track_reset(self) -> None:
+        r"""
+        **Reset a Matrix's internal tracker.**
+
+        Raises:
+            UserWarning: The function is used on a deleted Tensor.
+                Turned off by toggling ikwiad.
+                See :func:`_Tensor.ikwiad`.
+        """
         if self._is_valid_tensor(itm=self):
             # reset tracker
             self._tracker = self._default_tracker.copy()
         return None
 
     def copy(self) -> Matrix | None:
+        r"""
+        **Creates a distinct copy of a Matrix.**
+
+        Isn't a deep copy, and only copies internal tensor.
+
+        Returns:
+            Matrix | None: Copied Matrix.
+
+        Raises:
+            UserWarning: The function is used on a deleted Tensor.
+                Turned off by toggling ikwiad.
+                See :func:`_Tensor.ikwiad`.
+        """
         if self._is_valid_tensor(itm=self):
             # duplicate matrix
             return Matrix(obj=self._tensor)
         return None
 
     @classmethod
-    def replace(cls, replaced: Matrix | str, replacer: Matrix | str) -> None:
+    def replace(cls, replaced: Matrix | str | int, replacer: Matrix | str | int) -> None:
+        r"""
+        **Replaces a Matrix with another Matrix in the reference list.
+
+        Parameters:
+            replaced (Matrix | str | int): Replaced Matrix.
+            replacer (Matrix | str | int): Replacer Matrix.
+
+        Raises:
+            ValueError: Invalid Matrix reference.
+            TypeError: Invalid reference type or deleted Matrix reference.
+
+        Note:
+            Deletes the replaced Tensor using :func:`Matrix.instance_reset`.
+        """
         # find replaced and replacer information
         replaced_itm, replaced_id = cls._reference_tensor(itm=replaced)
         replacer_itm, replacer_id = cls._reference_tensor(itm=replacer)
@@ -510,6 +578,16 @@ class Matrix(_Tensor):
 
     @classmethod
     def track_reset(cls, *args: Matrix | str | None) -> None:
+        r"""
+        **Resets Matrix trackers.**
+
+        Parameters:
+            *args (Matrix | str | None): Matrices to retain trackers.
+
+        Note:
+            If 'track retain' is in a Matrix's tags, the Matrix will keep its track.
+            To delete this track, either reset it using :func:`Matrix.instance_trac_reset` or remove 'track retain'.
+        """
         # saved matrices
         args = list(args)
         for i, arg in enumerate(args):
@@ -526,7 +604,7 @@ class Matrix(_Tensor):
             matrix.instance_track_reset()
         return None
 
-    def _track_instance(self):
+    def _track_instance(self) -> dict[str, any]:
         # repr to hex
         alt_tracker = {
             'derivative': self._tracker.copy()['derivative'],
@@ -543,6 +621,8 @@ class Matrix(_Tensor):
         return None
 
     class _MethodCollection:
+        # NB: This includes vital methods for automatic differentiation methods.
+        # Be sure to inherit this base class to access these methods if creating another default class.
         @staticmethod
         def _ndim(obj: any, ndim: int, force_arr: bool = True) -> None:
             # check ndim
@@ -625,17 +705,31 @@ class Matrix(_Tensor):
             # extend to 4D
             return two_grad[np.newaxis, np.newaxis, :, :]
 
+    # NB: Even if creating new base methods, the base methods should still inherit from one of the ABCs below.
+    # Use _PairedBaseMethod for methods that utilize two objects.
+    # Use _LoneBaseMethod for methods that utilize one object.
+
+    # NB: The automatic-differentiation methods are called with main.
+    # This isn't exactly great practice and these methods should be called with __call__.
+    # However, PyCharm hates dunder methods and doesn't recognize inheritance of these dunder methods in subclasses.
+    # TODO: Whenever PyCharm finally recognizes dunder method inheritance, replace main with __call__.
+
     class _PairedBaseMethod(_MethodCollection, ABC):
-        # todo: docstrings
         @staticmethod
         @abstractmethod
         def forward(main: NDArray | float | int, other: NDArray | float | int) -> NDArray:
             r"""
-            Args:
-                main:
-                other:
+            **Forward method.**
+
+            Parameters:
+                main (NDArray | float | int): Main object.
+                other (NDArray | float | int): Other object.
+
+            Note:
+                Main or other object can be a non-array type, but one object must be an array.
 
             Returns:
+                NDArray: Result.
             """
             pass
 
@@ -643,11 +737,17 @@ class Matrix(_Tensor):
         @abstractmethod
         def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
             r"""
-            Args:
-                main:
-                other:
+            **Backward method.**
+
+            Parameters:
+                main (NDArray): Main object.
+                other (NDArray | float | int): Other object.
+
+            Note:
+                Main array must be an array type, but other object can be a non-array type.
 
             Returns:
+                NDArray: Result.
             """
             pass
 
@@ -655,11 +755,17 @@ class Matrix(_Tensor):
         @abstractmethod
         def other_backward(main: NDArray | float | int, other: NDArray) -> NDArray:
             r"""
-            Args:
-                main:
-                other:
+            **Backward method.**
+
+            Parameters:
+                main (NDArray | float | int): Main object.
+                other (NDArray): Other object.
+
+            Note:
+                Other array must be an array type, but main object can be a non-array type.
 
             Returns:
+                NDArray: Result.
             """
             pass
 
@@ -679,6 +785,21 @@ class Matrix(_Tensor):
             pass
 
         def main(self, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
+            r"""
+            **Main function call.**
+
+            Utilizes auto-differentiation algorithms if applicable.
+
+            Parameters:
+                main (Matrix | NDArray | float | int): Main object.
+                other (Matrix | NDArray | float | int): Other object.
+
+            Note:
+                Main or other object can be a non-array type, but one object must be an array.
+
+            Returns:
+                Matrix: Result Matrix.
+            """
             # set main matrix
             if isinstance(main, Matrix) and Matrix._is_valid_tensor(itm=main):
                 main_val = main._tensor
@@ -689,7 +810,7 @@ class Matrix(_Tensor):
                     f"Invalid type: Main object expected valid type Matrix, NumPy array, float, or integer. "
                     f"This method can be run with the Gradient if func:`reduce_grad` is used to convert "
                     f"the Gradient into a Matrix. "
-                    f"Received type {type(other)}."
+                    f"Received type {type(main)}."
                 )
 
             # set other matrix
@@ -708,7 +829,7 @@ class Matrix(_Tensor):
             # calculate result
             result = Matrix(self._forward(main=main_val, other=other_val))
             result._tracker['origin'] = [main, other]
-            if isinstance(other, Matrix):
+            if isinstance(main, Matrix):
                 # track main
                 Matrix._update_track(obj=main, derivative=self._backward, relation=[other, result])
             if isinstance(other, Matrix):
@@ -717,15 +838,32 @@ class Matrix(_Tensor):
             return result
 
     class _LoneBaseMethod(_MethodCollection, ABC):
-        # todo: docstrings
         @staticmethod
         @abstractmethod
         def forward(main: NDArray) -> NDArray:
+            r"""
+            **Forward method.**
+
+            Parameters:
+                main (NDArray): Main object.
+
+            Returns:
+                NDArray: Result.
+            """
             pass
 
         @staticmethod
         @abstractmethod
         def backward(main: NDArray) -> NDArray:
+            r"""
+            **Backward method.**
+
+            Parameters:
+                main (NDArray): Main object.
+
+            Returns:
+                NDArray: Result.
+            """
             pass
 
         @staticmethod
@@ -738,23 +876,46 @@ class Matrix(_Tensor):
         def _backward(main: NDArray) -> NDArray:
             pass
 
-        def main(self, main: Matrix) -> Matrix:
-            # check array
-            if not isinstance(main, Matrix) and Matrix._is_valid_tensor(itm=main):
+        def main(self, main: Matrix | NDArray) -> Matrix:
+            r"""
+            **Main function call.**
+
+            Utilizes auto-differentiation algorithms if applicable.
+
+            Parameters:
+                main (Matrix | NDArray): Main object.
+
+            Returns:
+                Matrix: Result Matrix.
+            """
+            # set main matrix
+            if isinstance(main, Matrix) and Matrix._is_valid_tensor(itm=main):
+                main_val = main._tensor
+            elif isinstance(main, np.ndarray | float | int):
+                main_val = main
+            else:
                 raise TypeError(
-                    f"Invalid type: Main object expected valid type Matrix. "
+                    f"Invalid type: Main object expected valid type Matrix, or NumPy array. "
                     f"This method can be run with the Gradient if func:`reduce_grad` is used to convert "
                     f"the Gradient into a Matrix. "
                     f"Received type {type(main)}."
                 )
             # calculate result
-            result = Matrix(self._forward(main=main._tensor))
+            result = Matrix(self._forward(main=main_val))
             result._tracker['origin'] = [main, None]
-            # track main
-            Matrix._update_track(obj=main, derivative=self._backward, relation=[None, result])
+            if isinstance(main, Matrix):
+                # track main
+                Matrix._update_track(obj=main, derivative=self._backward, relation=[None, result])
             return result
 
     class ElementWiseMethod(_PairedBaseMethod):
+        r"""
+        **Elementwise Matrix method structure.**
+
+        Used for autograd methods that involve two Matrices in an elementwise operation.
+        Automatically structures the fourth-dimensional gradient from the two-dimensional gradient.
+        Implements automatic differentiation algorithms through :func:`ElementWiseMethod.main` calls.
+        """
         @staticmethod
         @abstractmethod
         def forward(main: NDArray | float | int, other: NDArray | float | int) -> NDArray:
@@ -817,6 +978,13 @@ class Matrix(_Tensor):
             return cls._elementwise_broadcast(two_grad=result)
 
     class LoneElementWiseMethod(_LoneBaseMethod):
+        r"""
+        **Lone Elementwise Matrix method structure.**
+
+        Used for autograd methods that involve one Matrix in an elementwise operation.
+        Automatically structures the fourth-dimensional gradient from the two-dimensional gradient.
+        Implements automatic differentiation algorithms through :func:`LoneElementWiseMethod.main` calls.
+        """
         @staticmethod
         @abstractmethod
         def forward(main: NDArray) -> NDArray:
@@ -855,6 +1023,13 @@ class Matrix(_Tensor):
             return cls._elementwise_broadcast(two_grad=result)
 
     class ScalarMethod(_LoneBaseMethod):
+        r"""
+        **Scalar Matrix method structure.**
+
+        Used for autograd methods that involve one Matrix and result in a scalar output.
+        Automatically structures the fourth-dimensional gradient from the two-dimensional gradient.
+        Implements automatic differentiation algorithms through :func:`ScalarMethod.main` calls.
+        """
         @staticmethod
         @abstractmethod
         def forward(main: NDArray) -> NDArray:
@@ -894,6 +1069,14 @@ class Matrix(_Tensor):
             return cls._scalar_broadcast(two_grad=result)
 
     class CustomMethod(_PairedBaseMethod):
+        r"""
+        **Custom Matrix method structure.**
+
+        Used for autograd methods that involve two Matrices and require custom gradient creation.
+        Doesn't automatically structure any gradients; this is something the user must create.
+        These gradients must be fourth-dimensional for proper chain-ruling to occur.
+        Implements automatic differentiation algorithms through :func:`CustomMethod.main` calls.
+        """
         @staticmethod
         @abstractmethod
         def forward(main: NDArray | float | int, other: NDArray | float | int) -> NDArray:
@@ -955,6 +1138,14 @@ class Matrix(_Tensor):
             return result
 
     class LoneCustomMethod(_LoneBaseMethod):
+        r"""
+        **Lone Custom Matrix method structure.**
+
+        Used for autograd methods that involve one Matrix and requires custom gradient creation.
+        Doesn't automatically structure any gradients; this is something the user must create.
+        These gradients must be fourth-dimensional for proper chain-ruling to occur.
+        Implements automatic differentiation algorithms through :func:`LoneCustomMethod.main` calls.
+        """
         @staticmethod
         @abstractmethod
         def forward(main: NDArray) -> NDArray:
@@ -1089,72 +1280,138 @@ class Matrix(_Tensor):
     _add = _Add()
     _sub = _Sub()
 
+    # NB: Dunder methods might not allow the first object to be a non-Matrix object.
+    # They are attempted with __r__ dunder methods.
+    # However, this might not work.
+    # Therefore, internal raw methods allow calls with the first object being a non-Matrix object.
+
     # raw method calls
     @classmethod
     def rmatmul(cls, main: Matrix | NDArray, other: Matrix | NDArray) -> Matrix:
         r"""**Raw matrix multiplication.**"""
-        return cls._matmul.main(main, other)
+        return cls._matmul.main(main=main, other=other)
 
     @classmethod
     def rpow(cls, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
         r"""Raw Hadamard power."""
-        return cls._pow.main(main, other)
+        return cls._pow.main(main=main, other=other)
 
     @classmethod
     def rmul(cls, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
         r"""Raw Hadamard multiplication."""
-        return cls._mul.main(main, other)
+        return cls._mul.main(main=main, other=other)
 
     @classmethod
     def rtruediv(cls, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
         r"""Raw Hadamard division."""
-        return cls._truediv.main(main, other)
+        return cls._truediv.main(main=main, other=other)
 
     @classmethod
     def radd(cls, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
         r"""Raw addition."""
-        return cls._add.main(main, other)
+        return cls._add.main(main=main, other=other)
 
     @classmethod
     def rsub(cls, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
         r"""Raw subtraction."""
-        return cls._sub.main(main, other)
+        return cls._sub.main(main=main, other=other)
 
     # dunder
     def __matmul__(self, other: Matrix | NDArray) -> Matrix:
         r"""**Matrix multiplication.**"""
-        return self._matmul.main(self, other)
+        return self._matmul.main(main=self, other=other)
+
+    def __rmatmul__(self, other: Matrix | NDArray) -> Matrix:
+        r"""**Other matrix multiplication.**"""
+        return self._matmul.main(main=other, other=self)
 
     def __pow__(self, other: Matrix | NDArray | float | int) -> Matrix:
         r"""**Hadamard power.**"""
-        return self._pow.main(self, other)
+        return self._pow.main(main=self, other=other)
+
+    def __rpow__(self, other: Matrix | NDArray | float | int) -> Matrix:
+        r"""**Other Hadamard power.**"""
+        return self._pow.main(main=other, other=self)
 
     def __mul__(self, other: Matrix | NDArray | float | int) -> Matrix:
         r"""**Hadamard multiplication.**"""
-        return self._mul.main(self, other)
+        return self._mul.main(main=self, other=other)
+
+    def __rmul__(self, other: Matrix | NDArray | float | int) -> Matrix:
+        r"""**Other Hadamard multiplication.**"""
+        return self._mul.main(main=other, other=self)
 
     def __truediv__(self, other: Matrix | NDArray | float | int) -> Matrix:
         r"""**Hadamard division.**"""
-        return self._truediv.main(self, other)
+        return self._truediv.main(main=self, other=other)
+
+    def __rtruediv__(self, other: Matrix | NDArray | float | int) -> Matrix:
+        r"""**Other Hadamard division.**"""
+        return self._truediv.main(main=other, other=self)
 
     def __add__(self, other: Matrix | NDArray | float | int) -> Matrix:
         r"""**Addition.**"""
-        return self._add.main(self, other)
+        return self._add.main(main=self, other=other)
+
+    def __radd__(self, other: Matrix | NDArray | float | int) -> Matrix:
+        r"""**Other addition.**"""
+        return self._add.main(main=other, other=self)
 
     def __sub__(self, other: Matrix | NDArray | float | int) -> Matrix:
         r"""**Subtraction.**"""
-        return self._sub.main(self, other)
+        return self._sub.main(main=self, other=other)
+
+    def __rsub__(self, other: Matrix | NDArray | float | int) -> Matrix:
+        r"""**Other subtraction.**"""
+        return self._sub.main(main=other, other=self)
 
 
 ########################################################################################################################
 
 
 class Gradient(_Tensor):
+    r"""
+    **GardenPy's Gradient.**
+
+    Four-dimensional Tensor subclass that allows full storage of Jacobians.
+    This storage, while not the fastest, is the most comprehensive.
+    This storage allows gradients to be fully stored and taken for any operation utilizing a Matrix.
+    It also allows gradients to be taken at any order with no difference in outcome.
+
+    The built-in chain rule operation is applicable to chain-ruling any gradients and doesn't need to be modified.
+    The mathematical representation and explanation of this logic can be found on this project's GitHub.
+
+    Note:
+        Although already stated, Gradients don't automatically reset.
+        However, given that Gradients are fourth-dimensional, the memory-leak issue is especially prevalent.
+        The gradients take up a significantly higher amount of storage than the Matrix object.
+        Make sure to clear the cache as occasionally as possible.
+    """
     # gradient memory internals
     _cache: list[Gradient | None] = []
     _prefix: str = 'g'
 
     def __init__(self, obj: any, *, _override: bool = False):
+        r"""
+        **Gradient creation.**
+
+        Creates a Gradient with default internals and caches instance.
+        User creation of Gradients is strongly not recommended.
+        These objects should be automatically created with :func:`Gradient.nabla` calls.
+        With all the important internals required for Gradients, you shouldn't create a Gradient on your own.
+        Only do this if you absolutely know what you're doing.
+
+        Parameters:
+            obj (any): Object to be turned into a Gradient.
+            _override (bool): Override and create a Gradient.
+
+        Raises:
+            TypeError: Object wasn't a four-dimensional array consisting of only real numbers.
+            AssertionError: Override wasn't given.
+
+        Note:
+            All objects will undergo NumPy array conversion.
+        """
         assert _override, "Raw Gradient creation isn't recommended; to create a Gradient object, signal override."
         super().__init__(obj=obj, _ndim=4)
         # gradient subclass internals
@@ -1162,11 +1419,28 @@ class Gradient(_Tensor):
         self._tracker = self._default_tracker.copy()
 
     def reduce_grad(self) -> Matrix | None:
+        r"""
+        **Creates a Matrix for calculation from Gradient objects.**
+
+        Sums the Gradient object across the first two dimensions.
+        This possibly loses information if the first two dimensions aren't (1, 1).
+        If the dimensions are (1, 1), the full Jacobian gradient is the same as the reduced gradient.
+        Therefore, no information is lost.
+        This conversion must be done if you want to use Gradient objects in calculations with Matrix objects.
+
+        Returns:
+            Matrix | None: Dimensionally reduced gradient.
+
+        Raises:
+            UserWarning: The function is used on a deleted Tensor.
+                Turned off by toggling ikwiad.
+                See :func:`_Tensor.ikwiad`.
+        """
         if self._is_valid_tensor(itm=self):
             return Matrix(np.sum(self._tensor, axis=(0, 1)))
         return None
 
-    def _track_instance(self):
+    def _track_instance(self) -> dict[str, any]:
         alt_tracker = {'chain': self._unpack_ids(self._tracker.copy()['chain'])}
         return alt_tracker
 
@@ -1181,6 +1455,43 @@ class Gradient(_Tensor):
 
     @staticmethod
     def nabla(grad: Matrix, wrt: Matrix, *, binary: bool = True) -> Gradient:
+        r"""
+        **Calculates the gradient of two Tensors.**
+
+        A search tree, going upstream on the computation graph, relates the two Matrices.
+        Then local Jacobians are calculated and manually chain-ruled upstream.
+        Finally, the path is stored within the object ordered downstream.
+
+        Parameters:
+            grad (Matrix): Matrix to calculate the gradient.
+            wrt (Matrix): Matrix the gradient is calculated with respect to.
+            binary (bool): Whether to utilize a binary search tree or just a search tree.
+                If binary is on, only the first relationship is found.
+                Otherwise, all relationships are found and the gradients are added together.
+
+        Returns:
+            Gradient: Calculated gradient with set internals.
+
+        Raises:
+            TypeError: If the Tensors were of the wrong type.
+            TrackingError: If no relationship could be found between the Tensors.
+
+        Note:
+            This function automatically calls :func:`Tensor.chain` to chain rule gradients.
+            However, it doesn't attempt to find already calculated gradients.
+            Computational speed can be increased by using pre-calculated gradients and manually calling
+            :func:`Tensor.chain`.
+
+        Note:
+            Automatically chain-ruled gradients store automatically chain-ruled paths differently.
+            Each automatic path is stored within its own list instance to signal automatic chain-ruling.
+            This has no impact on computation; it's just for user convenience.
+
+        Note:
+            The gradient's tracker won't reference the full path if binary is toggled off.
+            If there is only one path, toggling binary off will only increase computational time.
+            This also won't result in any difference for the calculated gradient.
+        """
         # check matrices
         if not isinstance(grad, Matrix) and Matrix._is_valid_tensor(itm=grad):
             raise TypeError(
@@ -1190,7 +1501,7 @@ class Gradient(_Tensor):
         if not isinstance(wrt, Matrix) and Matrix._is_valid_tensor(itm=wrt):
             raise TypeError(
                 f"Invalid type: Gradient calculation can only be done with valid Matrix objects. "
-                f"Received wrt object of type {type(grad)}."
+                f"Received wrt object of type {type(wrt)}."
             )
 
         # initialize relation
@@ -1265,6 +1576,7 @@ class Gradient(_Tensor):
 
         # NB: Automatic chain-ruling occurs back to front.
         # This is fastest with most NN-type architectures.
+        # The only way to reverse this order is to manually call chain-rules.
         if binary:
             # initial and final non-nested
             chain = [grad] + [relation.copy()[-2:0:-1]] + [wrt]
@@ -1302,11 +1614,32 @@ class Gradient(_Tensor):
 
     @staticmethod
     def chain(up: Gradient, down: Gradient) -> Gradient:
+        r"""
+        **Chain-rules gradients.**
+
+        Checks if there is an immediate link between the downstream and upstream gradients.
+        If there is a link, the chain-rule operation is called to link the gradients.
+
+        Args:
+            up (Gradient): Downstream gradient.
+            down (Gradient): Upstream gradient.
+
+        Returns:
+            Gradient: Chain ruled gradient with set internals.
+
+        Raises:
+            TrackingError: If no relationship could be found between the Tensors.
+
+        Note:
+            :func:`Gradient.nabla`automatically chain rules gradients.
+            However, it doesn't attempt to find already calculated gradients.
+            Computational speed can be increased by using pre-calculated gradients and manually calling this function.
+        """
         # check gradients
         if not isinstance(up, Gradient) and Gradient._is_valid_tensor(itm=up):
             raise TypeError(
                 f"Invalid type: Chain-ruling can only be done with valid Gradient objects. "
-                f"Received up object of type {type(down)}."
+                f"Received up object of type {type(up)}."
             )
         if not isinstance(down, Gradient) and Gradient._is_valid_tensor(itm=up):
             raise TypeError(
