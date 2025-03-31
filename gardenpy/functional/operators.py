@@ -65,6 +65,7 @@ def nabla(grad: Matrix, wrt: Matrix, *, binary: bool = True) -> Gradient:
 def chain(up: Gradient, down: Gradient) -> Gradient:
     return Gradient.chain(up=up, down=down)
 
+
 def zero_grad(*args: Matrix | str):
     r"""
     **Resets Gradients and Matrices.**

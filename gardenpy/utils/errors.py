@@ -6,6 +6,7 @@ Contains:
     - :class:`TrackingError`
 """
 
+
 class MissingMethodError(Exception):
     r"""**Missing method.**"""
     pass

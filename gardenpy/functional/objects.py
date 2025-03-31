@@ -55,7 +55,7 @@ class _Tensor(ABC):
 
         Parameters:
             obj (any): Object to be turned into a Tensor.
-            _ndim (int), 0 < _ndim: Allowed dimensions of Tensor object.
+            _ndim (int), 0 < _ndim: Allowed dimensions of the Tensor object.
 
         Raises:
             TypeError: Object wasn't an _ndim-dimensional array consisting of only real numbers.
@@ -69,7 +69,8 @@ class _Tensor(ABC):
         obj = np.array(obj)
         if not np.issubdtype(obj.dtype, np.number) or obj.ndim != _ndim:
             # NB: Current implementation forces Matrix to be 2D and Gradient to be 4D.
-            # This can be upscaled so Matrix is nD and Gradient is 2nD, as the Gradient is a 2nD Jacobian of the Matrix.
+            # This can be upscaled, so Matrices are nD, and Gradients are 2nD
+            # This is as the Gradient is a 2nD Jacobian of the Matrix.
             # However, this falls outside the scope of this project.
             raise TypeError(
                 f"Failed instantiation: Input object failed to be all numbers or "
@@ -462,7 +463,7 @@ class _Tensor(ABC):
             # function call
             return [self._unpack_ids(it) for it in itm]
         else:
-            if itm is None or isinstance(itm, float | int):
+            if itm is None or isinstance(itm, (float, int)):
                 # raw item
                 return itm
             else:
@@ -486,8 +487,8 @@ class Matrix(_Tensor):
     Gradients themselves are calculated and stored within :class:`Gradient`.
 
     This Tensor subclass includes methods required for making automatic-differentiable functions.
-    To create such a function, inherit one of the base-functions and define the required methods.
-    To utilize automatic-differentiation, use the main function.
+    To create such a function, inherit one of the base functions and define the required methods.
+    To utilize automatic differentiation, use the main function.
 
     Note:
         Autograd methods can be created by inheriting a Matrix method class.
@@ -744,7 +745,7 @@ class Matrix(_Tensor):
                 other (NDArray | float | int): Other object.
 
             Note:
-                Main array must be an array type, but other object can be a non-array type.
+                Main array must be an array type, but Other object can be a non-array type.
 
             Returns:
                 NDArray: Result.
@@ -762,7 +763,7 @@ class Matrix(_Tensor):
                 other (NDArray): Other object.
 
             Note:
-                Other array must be an array type, but main object can be a non-array type.
+                Other array must be an array type, but Main object can be a non-array type.
 
             Returns:
                 NDArray: Result.
@@ -803,7 +804,7 @@ class Matrix(_Tensor):
             # set main matrix
             if isinstance(main, Matrix) and Matrix._is_valid_tensor(itm=main):
                 main_val = main._tensor
-            elif isinstance(main, np.ndarray | float | int):
+            elif isinstance(main, (np.ndarray, float, int)):
                 main_val = main
             else:
                 raise TypeError(
@@ -816,7 +817,7 @@ class Matrix(_Tensor):
             # set other matrix
             if isinstance(other, Matrix) and Matrix._is_valid_tensor(itm=main):
                 other_val = other._tensor
-            elif isinstance(other, np.ndarray | float | int):
+            elif isinstance(other, (np.ndarray, float, int)):
                 other_val = other
             else:
                 raise TypeError(
@@ -891,7 +892,7 @@ class Matrix(_Tensor):
             # set main matrix
             if isinstance(main, Matrix) and Matrix._is_valid_tensor(itm=main):
                 main_val = main._tensor
-            elif isinstance(main, np.ndarray | float | int):
+            elif isinstance(main, (np.ndarray, float, int)):
                 main_val = main
             else:
                 raise TypeError(
@@ -1095,7 +1096,7 @@ class Matrix(_Tensor):
         r"""
         **Lone Scalar Matrix method structure.**
 
-        Used for autograd methods that involves one Matrix and results in a scalar output.
+        Used for autograd methods that involve one Matrix and results in a scalar output.
         Automatically structures the fourth-dimensional gradient from the two-dimensional gradient.
         Implements automatic differentiation algorithms through :func:`ScalarMethod.main` calls.
         """
