@@ -7,9 +7,10 @@ Contains:
 
 from typing import Union
 import numpy as np
+from numpy.typing import NDArray
 
 
-def c_matrix(pred: Union[list, np.ndarray], expect: Union[list, np.ndarray], *, norm: bool = True) -> np.ndarray:
+def c_matrix(pred: list[float | int] | NDArray, expect: list[float | int] | NDArray, *, norm: bool = True) -> NDArray:
     r"""
     **Confusion matrix.**
 

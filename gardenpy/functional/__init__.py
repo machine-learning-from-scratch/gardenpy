@@ -5,7 +5,8 @@ Contains:
     - :module:`objects`
     - :module:`operators`
     - :module:`algorithms`
-    - :class:`Tensor`
+    - :class:`Matrix`
+    - :class:`Gradient`
     - :func:`tensor`
     - :class:`chain`
     - :class:`Initializers`
@@ -14,9 +15,12 @@ Contains:
     - :class:`Optimizers`
 """
 
-from .objects import Tensor
+from .objects import (
+    Matrix,
+    Gradient
+)
 from .operators import (
-    tensor,
+    matrix,
     nabla,
     chain,
     zero_grad,
@@ -30,8 +34,9 @@ from .algorithms import (
 )
 
 __all__ = [
-    'Tensor',
-    'tensor',
+    'Matrix',
+    'Gradient',
+    'matrix',
     'nabla',
     'chain',
     'zero_grad',

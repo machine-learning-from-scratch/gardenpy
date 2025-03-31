@@ -1,4 +1,4 @@
-from gardenpy.functional.objects_temp import Matrix, Gradient
+from gardenpy.functional.objects import Matrix, Gradient
 
 m1 = Matrix([[1, 2]])
 w1 = Matrix([[1, 2, 3], [4, 5, 6]])

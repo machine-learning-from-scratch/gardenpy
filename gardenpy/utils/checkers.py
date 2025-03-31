@@ -6,7 +6,6 @@ Contains:
     - :class:`ParamChecker`
 """
 
-from typing import Callable, Dict, Union
 from types import LambdaType
 from warnings import warn
 
@@ -19,10 +18,10 @@ class Params:
     """
     def __init__(
             self,
-            default: Union[Dict[str, Union[int, float, str, bool]], None] = None,
-            dtypes: Union[Dict[str, Union[tuple, any]], None] = None,
-            vtypes: Union[Dict[str, Callable], None] = None,
-            ctypes: Union[Dict[str, Callable], None] = None
+            default: dict[str, int | float | str | bool] | None = None,
+            dtypes: dict[str, any] | None = None,
+            vtypes: dict[str, callable] | None = None,
+            ctypes: dict[str, callable] | None = None
     ):
         r"""
         **Set parameter settings for a class instance**
@@ -58,7 +57,7 @@ class Params:
         return itm
 
     @staticmethod
-    def _check_default(default: Union[dict, None]) -> Union[dict, None]:
+    def _check_default(default: dict[str, any] | None) -> dict[str, any] | None:
         # check dict
         Params._check_type(default)
         # check default
@@ -71,7 +70,7 @@ class Params:
         return default
 
     @staticmethod
-    def _check_dtypes(dtypes: Union[dict, None]) -> Union[dict, None]:
+    def _check_dtypes(dtypes: dict[str, any] | None) -> dict[str, any] | None:
         # check dict
         Params._check_type(dtypes)
         # check dtypes
@@ -84,7 +83,7 @@ class Params:
         return dtypes
 
     @staticmethod
-    def _check_vtypes(vtypes: Union[dict, None]) -> Union[dict, None]:
+    def _check_vtypes(vtypes: dict[str, any] | None) -> dict[str, any] | None:
         # check dict
         Params._check_type(vtypes)
         # check vtypes
@@ -97,7 +96,7 @@ class Params:
         return vtypes
 
     @staticmethod
-    def _check_ctypes(ctypes: Union[dict, None]) -> Union[dict, None]:
+    def _check_ctypes(ctypes: dict[str, any] | None) -> dict[str, any] | None:
         # check dict
         Params._check_type(ctypes)
         # check ctypes
@@ -110,7 +109,7 @@ class Params:
         return ctypes
 
     @property
-    def default(self) -> Union[Dict[str, Union[int, float, str, bool]], None]:
+    def default(self) -> dict[str, int | float | str | bool] | None:
         r"""
         **Default values.**
 
@@ -122,7 +121,7 @@ class Params:
         return self._default
 
     @property
-    def dtypes(self) -> Union[Dict[str, Union[tuple, any]], None]:
+    def dtypes(self) -> dict[str, any] | None:
         r"""
         **Accepted data types.**
 
@@ -134,7 +133,7 @@ class Params:
         return self._dtypes
 
     @property
-    def vtypes(self) -> Union[Dict[str, Callable], None]:
+    def vtypes(self) -> dict[str, callable] | None:
         r"""
         **Accepted value types.**
 
@@ -146,7 +145,7 @@ class Params:
         return self._vtypes
 
     @property
-    def ctypes(self) -> Union[Dict[str, Callable], None]:
+    def ctypes(self) -> dict[str, callable] | None:
         r"""
         **Conversion types.**
 
@@ -194,10 +193,9 @@ class ParamChecker:
 
     def _validate_dict(
             self,
-            param_dict: dict,
+            param_dict: dict[str, any],
             name: str,
-            check_callable:
-            bool = False,
+            check_callable: bool = False,
             check_lambda: bool = False
     ) -> None:
         # validate dictionary
@@ -232,7 +230,7 @@ class ParamChecker:
 
         return params
 
-    def __call__(self, params: Union[dict, None] = None, **kwargs) -> Union[dict, None]:
+    def __call__(self, params: dict | None = None, **kwargs: any) -> dict | None:
         r"""
         **Checks parameters.**
 

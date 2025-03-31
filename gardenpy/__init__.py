@@ -16,8 +16,9 @@ For implementation examples, detailed documentation, mathematical documentation,
 """
 
 from .functional import (
-    Tensor,
-    tensor,
+    Matrix,
+    Gradient,
+    matrix,
     nabla,
     chain,
     zero_grad,
@@ -46,8 +47,9 @@ __download_url__ = 'https://github.com/githubCHM/gardenpy,'
 __status__ = 'Development'
 
 __all__ = [
-    'Tensor',
-    'tensor',
+    'Matrix',
+    'Gradient',
+    'matrix',
     'nabla',
     'chain',
     'zero_grad',

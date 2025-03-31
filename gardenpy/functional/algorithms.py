@@ -8,10 +8,11 @@ Contains:
     - :class:`Optimizers`
 """
 
-from typing import Callable, List, Tuple, Optional, Union
+from typing import List, Tuple, Optional, Union
 import numpy as np
+from numpy.typing import NDArray
 
-from .objects import Tensor
+from .objects import Matrix, Gradient
 from ..utils.checkers import Params, ParamChecker
 
 
@@ -24,13 +25,20 @@ class Initializers:
         - Gaussian Initialization
         - Uniform Initialization
     """
-    _methods: List[str] = [
+    _methods: list[str] = [
         'xavier',
         'gaussian',
         'uniform'
     ]
 
-    def __init__(self, method: str, *, hyperparameters: Optional[dict] = None, ikwiad: bool = False, **kwargs):
+    def __init__(
+            self,
+            method: str,
+            *,
+            hyperparameters: dict[str, any] | None = None,
+            ikwiad: bool = False,
+            **kwargs: any
+    ):
         r"""
         **Set initializer method and hyperparameters.**
 
@@ -50,7 +58,7 @@ class Initializers:
 
         Args:
             method (str): Initializer method.
-            hyperparameters (dict, optional): Method hyperparameters.
+            hyperparameters (dict | None): Method hyperparameters.
             ikwiad (bool), default = False: Turns off all warning messages ("I know what I am doing" - ikwiad).
             **kwargs: Alternate input format for method hyperparameters.
 
@@ -76,7 +84,7 @@ class Initializers:
         """
         return cls._methods
 
-    def _get_method(self, method: str, hyperparams: dict, **kwargs) -> Tuple[str, dict]:
+    def _get_method(self, method: str, hyperparams: dict[str, any], **kwargs) -> tuple[str, dict[str, any]]:
         # hyperparameter reference
         default_hyperparams = {
             'xavier': Params(
@@ -121,33 +129,34 @@ class Initializers:
         if self._hyperparams is not None:
             h = self._hyperparams.copy()
 
-        def initializer_method(func: Callable) -> Callable:
-            def wrapper(*args: int) -> 'Tensor':
+        def initializer_method(func: callable) -> callable:
+            def wrapper(*args: int) -> Matrix:
                 # check dimensions
                 if len(args) != 2:
                     raise ValueError("Attempted initialization with more than two dimensions.")
                 if not all(isinstance(arg, int) and 0 < arg for arg in args):
                     raise ValueError("Attempted initialization with dimensions that weren't positive integers.")
                 # initialize tensor
-                return Tensor(func(*args))
+                return Matrix(func(*args))
+
             return wrapper
 
         @initializer_method
-        def xavier(*args: int) -> np.ndarray:
+        def xavier(*args: int) -> NDArray:
             # xavier method
             return (
-                    h['kappa'] *
-                    np.sqrt(2.0 / float(args[-2] + args[-1])) *
-                    self.rng.normal(loc=h['mu'], scale=h['sigma'], size=args)
+                h['kappa'] *
+                np.sqrt(2.0 / float(args[-2] + args[-1])) *
+                self.rng.normal(loc=h['mu'], scale=h['sigma'], size=args)
             )
 
         @initializer_method
-        def gaussian(*args: int) -> np.ndarray:
+        def gaussian(*args: int) -> NDArray:
             # gaussian method
             return h['kappa'] * self.rng.normal(loc=h['mu'], scale=h['sigma'], size=args)
 
         @initializer_method
-        def uniform(*args: int) -> np.ndarray:
+        def uniform(*args: int) -> NDArray:
             # uniform method
             return h['kappa'] * np.ones(args, dtype=np.float64)
 
@@ -160,7 +169,7 @@ class Initializers:
         # get function
         self._init = inits[self._method]
 
-    def __call__(self, *args: int) -> Tensor:
+    def __call__(self, *args: int) -> Matrix:
         r"""
         **Returns initialized Tensor with specified dimensions using initialization method.**
 
@@ -321,100 +330,74 @@ class Activators:
         if self._hyperparams is not None:
             h = self._hyperparams.copy()
 
-        class _Softmax(Tensor.LoneTensorMethod):
+        class _Softmax(Matrix.LoneCustomMethod):
             # softmax
-            def __init__(self):
-                super().__init__(prefix='softmax')
-
             @staticmethod
-            def forward(x: np.ndarray) -> np.ndarray:
+            def forward(x: NDArray) -> NDArray:
                 return np.exp(x) / np.sum(np.exp(x))
 
             @staticmethod
-            def backward(x: np.ndarray) -> np.ndarray:
-                return (np.sum(np.exp(x)) * np.exp(x) - np.exp(2.0 * x)) / (np.sum(np.exp(x)) ** 2.0)
+            def backward(x: NDArray) -> NDArray:
+                raise NotImplementedError("Haven't mathematically derived yet.")
 
-            @staticmethod
-            def chain(down: np.ndarray, up: np.ndarray) -> np.ndarray:
-                # todo: correct implementation
-                raise NotImplementedError("Currently not implemented.")
-
-        class _ReLU(Tensor.LoneTensorMethod):
+        class _ReLU(Matrix.LoneElementWiseMethod):
             # relu
-            def __init__(self):
-                super().__init__(prefix='relu')
-
             @staticmethod
-            def forward(x: np.ndarray) -> np.ndarray:
+            def forward(x: NDArray) -> NDArray:
                 return np.maximum(0.0, x)
 
             @staticmethod
-            def backward(x: np.ndarray) -> np.ndarray:
+            def backward(x: NDArray) -> NDArray:
                 return np.where(x > 0.0, 1.0, 0.0)
 
-        class _LeakyReLU(Tensor.LoneTensorMethod):
+        class _LeakyReLU(Matrix.LoneElementWiseMethod):
             # leaky relu
-            def __init__(self):
-                super().__init__(prefix='lrelu')
-
             @staticmethod
-            def forward(x: np.ndarray) -> np.ndarray:
+            def forward(x: NDArray) -> NDArray:
                 return np.maximum(h['beta'] * x, x)
 
             @staticmethod
-            def backward(x: np.ndarray) -> np.ndarray:
+            def backward(x: NDArray) -> NDArray:
                 return np.where(x > 0.0, 1.0, h['beta'])
 
-        class _Sigmoid(Tensor.LoneTensorMethod):
+        class _Sigmoid(Matrix.LoneElementWiseMethod):
             # sigmoid
-            def __init__(self):
-                super().__init__(prefix='sigmoid')
-
             @staticmethod
-            def forward(x: np.ndarray) -> np.ndarray:
+            def forward(x: NDArray) -> NDArray:
                 return (np.exp(-x) + 1.0) ** -1.0
 
             @staticmethod
-            def backward(x: np.ndarray) -> np.ndarray:
+            def backward(x: NDArray) -> NDArray:
                 return np.exp(-x) / ((np.exp(-x) + 1.0) ** 2.0)
 
-        class _Tanh(Tensor.LoneTensorMethod):
+        class _Tanh(Matrix.LoneElementWiseMethod):
             # tanh
-            def __init__(self):
-                super().__init__(prefix='tanh')
-
             @staticmethod
-            def forward(x: np.ndarray) -> np.ndarray:
+            def forward(x: NDArray) -> NDArray:
                 return np.tanh(x)
 
             @staticmethod
-            def backward(x: np.ndarray) -> np.ndarray:
+            def backward(x: NDArray) -> NDArray:
                 return np.cosh(x) ** -2.0
 
-        class _Softplus(Tensor.LoneTensorMethod):
+        class _Softplus(Matrix.LoneElementWiseMethod):
             # softplus
-            def __init__(self):
-                super().__init__(prefix='softplus')
-
             @staticmethod
-            def forward(x: np.ndarray) -> np.ndarray:
+            def forward(x: NDArray) -> NDArray:
                 return np.log(np.exp(h['beta'] * x) + 1.0) / h['beta']
 
             @staticmethod
-            def backward(x: np.ndarray) -> np.ndarray:
+            def backward(x: NDArray) -> NDArray:
                 return h['beta'] * np.exp(h['beta'] * x) / (h['beta'] * np.exp(h['beta'] * x) + h['beta'])
 
-        class _Mish(Tensor.LoneTensorMethod):
+        class _Mish(Matrix.LoneElementWiseMethod):
             # mish
-            def __init__(self):
-                super().__init__(prefix='mish')
-
             @staticmethod
-            def forward(x: np.ndarray) -> np.ndarray:
+            def forward(x: NDArray) -> NDArray:
                 return x * np.tanh(np.log(np.exp(h['beta'] * x) + 1.0) / h['beta'])
 
             @staticmethod
-            def backward(x: np.ndarray) -> np.ndarray:
+            def backward(x: NDArray) -> NDArray:
                 return (
                     np.tanh(np.log(np.exp(h['beta'] * x) + 1.0) / h['beta']) +
                     x * (np.cosh(np.log(np.exp(h['beta'] * x) + 1.0) / h['beta']) ** -2.0) *
@@ -434,7 +417,7 @@ class Activators:
         # get operator
         self._op = ops[self._method]()
 
-    def __call__(self, x: Union[Tensor, np.ndarray]) -> Union[Tensor, np.ndarray]:
+    def __call__(self, x: Union[Matrix, NDArray]) -> Union[Matrix, NDArray]:
         r"""
         **Forward function call.**
 
@@ -442,15 +425,15 @@ class Activators:
         Otherwise, raw operation is applied without autograd.
 
         Args:
-            x (Tensor | np.ndarray): Inputted array.
+            x (Tensor | NDArray): Inputted array.
 
         Returns:
-            Tensor | np.ndarray: Activated array.
+            Tensor | NDArray: Activated array.
 
         Raises:
             TypeError: If an invalid object was passed for the operation.
         """
-        if isinstance(x, Tensor) and x.type == 'mat':
+        if isinstance(x, Matrix):
             # x tensor
             return self._op.main(x)
         elif isinstance(x, np.ndarray):
@@ -460,7 +443,7 @@ class Activators:
             # x error
             raise TypeError("Attempted activation with an object that wasn't a matrix Tensor or NumPy array.")
 
-    def derivative(self, x: np.ndarray) -> np.ndarray:
+    def derivative(self, x: NDArray) -> NDArray:
         r"""
         **Backward function call.**
 
@@ -468,10 +451,10 @@ class Activators:
         Raw derivative operation should only be done on NumPy arrays.
 
         Args:
-            x (np.ndarray): Inputted array.
+            x (NDArray): Inputted array.
 
         Returns:
-            np.ndarray: Derivative activated array.
+            NDArray: Derivative activated array.
 
         Raises:
             TypeError: If an invalid object was passed for the operation.
@@ -593,44 +576,56 @@ class Losses:
         if self._hyperparams is not None:
             h = self._hyperparams.copy()
 
-        class _CrossEntropy(Tensor.PairedTensorMethod):
+        class _CrossEntropy(Matrix.ScalarMethod):
             # centropy
-            def __init__(self):
-                super().__init__(prefix='centropy')
-
             @staticmethod
-            def forward(yhat: np.ndarray, y: np.ndarray) -> np.ndarray:
+            def forward(yhat: NDArray, y: NDArray) -> NDArray:
                 return np.array([[-np.sum(y * np.log(yhat + h['epsilon']))]])
 
             @staticmethod
-            def backward(yhat: np.ndarray, y: np.ndarray) -> np.ndarray:
+            def backward(yhat: NDArray, y: NDArray) -> NDArray:
                 return -y / (yhat + h['epsilon'])
 
-        class _SumOfSquaredResiduals(Tensor.PairedTensorMethod):
-            # ssr
-            def __init__(self):
-                super().__init__(prefix='ssr')
-
             @staticmethod
-            def forward(yhat: np.ndarray, y: np.ndarray) -> np.ndarray:
+            def other_backward(yhat: any, y: any):
+                raise NotImplementedError(
+                    "No defined method: "
+                    "Backward method was intentionally left undefined for this algorithm."
+                )
+
+        class _SumOfSquaredResiduals(Matrix.ScalarMethod):
+            # ssr
+            @staticmethod
+            def forward(yhat: NDArray, y: NDArray) -> NDArray:
                 return np.array([[np.sum((y - yhat) ** 2.0)]])
 
             @staticmethod
-            def backward(yhat: np.ndarray, y: np.ndarray) -> np.ndarray:
+            def backward(yhat: NDArray, y: NDArray) -> NDArray:
                 return -2.0 * (y - yhat)
 
-        class _SumOfAbsoluteValueResiduals(Tensor.PairedTensorMethod):
-            # savr
-            def __init__(self):
-                super().__init__(prefix='savr')
-
             @staticmethod
-            def forward(yhat: np.ndarray, y: np.ndarray) -> np.ndarray:
+            def other_backward(yhat: any, y: any):
+                raise NotImplementedError(
+                    "No defined method: "
+                    "Backward method was intentionally left undefined for this algorithm."
+                )
+
+        class _SumOfAbsoluteValueResiduals(Matrix.ScalarMethod):
+            # savr
+            @staticmethod
+            def forward(yhat: NDArray, y: NDArray) -> NDArray:
                 return np.array([[np.sum(np.abs(y - yhat))]])
 
             @staticmethod
-            def backward(yhat: np.ndarray, y: np.ndarray) -> np.ndarray:
+            def backward(yhat: NDArray, y: NDArray) -> NDArray:
                 return -np.sign(y - yhat)
+
+            @staticmethod
+            def other_backward(yhat: any, y: any):
+                raise NotImplementedError(
+                    "No defined method: "
+                    "Backward method was intentionally left undefined for this algorithm."
+                )
 
         # operator reference
         ops = {
@@ -641,7 +636,7 @@ class Losses:
         # get operator
         self._op = ops[self._method]()
 
-    def __call__(self, yhat: Union[Tensor, np.ndarray], y: Union[Tensor, np.ndarray]) -> Union[Tensor, np.ndarray]:
+    def __call__(self, yhat: Union[Matrix, NDArray], y: Union[Matrix, NDArray]) -> Union[Matrix, NDArray]:
         r"""
         **Forward function call.**
 
@@ -649,19 +644,19 @@ class Losses:
         Otherwise, raw operation is applied without autograd.
 
         Args:
-            yhat (Tensor | np.ndarray): Predicted output.
-            y (Tensor | np.ndarray): Expected output.
+            yhat (Tensor | NDArray): Predicted output.
+            y (Tensor | NDArray): Expected output.
 
         Returns:
-            Tensor | np.ndarray: Loss.
+            Tensor | NDArray: Loss.
 
         Raises:
             TypeError: If an invalid object was passed for the operation.
         """
-        if not isinstance(y, (Tensor, np.ndarray)):
+        if not isinstance(y, (Matrix, np.ndarray)):
             # y error
             raise TypeError("Attempted loss with an expected object that wasn't a matrix Tensor or NumPy array.")
-        if isinstance(yhat, Tensor) and yhat.type == 'mat':
+        if isinstance(yhat, Matrix):
             # yhat tensor
             return self._op.main(yhat, y)
         elif isinstance(yhat, np.ndarray):
@@ -671,7 +666,7 @@ class Losses:
             # yhat error
             raise TypeError("Attempted loss with a predicted object that wasn't a matrix Tensor or NumPy array.")
 
-    def derivative(self, yhat: np.ndarray, y: np.ndarray) -> np.ndarray:
+    def derivative(self, yhat: NDArray, y: NDArray) -> NDArray:
         r"""
         **Backward function call.**
 
@@ -679,11 +674,11 @@ class Losses:
         Raw derivative operation should only be done on NumPy arrays.
 
         Args:
-            yhat (Tensor | np.ndarray): Predicted output.
-            y (Tensor | np.ndarray): Expected output.
+            yhat (Tensor | NDArray): Predicted output.
+            y (Tensor | NDArray): Expected output.
 
         Returns:
-            np.ndarray: Derivative activated array.
+            NDArray: Derivative activated array.
 
         Raises:
             TypeError: If an invalid object was passed for the operation.
@@ -944,7 +939,7 @@ class Optimizers:
         # return hyperparameters
         return method, checker(params=hyperparams, **kwargs)
 
-    def _get_memories(self, theta: np.ndarray) -> dict:
+    def _get_memories(self, theta: NDArray) -> dict:
         # initializes memory dictionary
         memories = {
             'adam': {
@@ -973,7 +968,7 @@ class Optimizers:
         if self._hyperparams is not None:
             h = self._hyperparams.copy()
 
-        def adam(theta: np.ndarray, nabla: np.ndarray, m: dict) -> np.ndarray:
+        def adam(theta: NDArray, nabla: NDArray, m: dict) -> NDArray:
             # adam
             gamma = nabla + h['lambda_d'] * theta
 
@@ -992,7 +987,7 @@ class Optimizers:
             m['iota'] += 1.0
             return theta - h['alpha'] * psi_hat / (np.sqrt(omega_hat) + h['epsilon'])
 
-        def sgd(theta: np.ndarray, nabla: np.ndarray, m: dict) -> np.ndarray:
+        def sgd(theta: NDArray, nabla: NDArray, m: dict) -> NDArray:
             # sgd
             gamma = nabla + h['lambda_d'] * theta
 
@@ -1004,7 +999,7 @@ class Optimizers:
 
             return theta - h['alpha'] * delta
 
-        def rmsp(theta: np.ndarray, nabla: np.ndarray, m: dict) -> np.ndarray:
+        def rmsp(theta: NDArray, nabla: NDArray, m: dict) -> NDArray:
             # rmsp
             gamma = nabla + h['lambda_d'] * theta
 
@@ -1016,7 +1011,7 @@ class Optimizers:
 
             return theta - h['alpha'] * delta
 
-        def adag(theta: np.ndarray, nabla: np.ndarray, m: dict) -> np.ndarray:
+        def adag(theta: NDArray, nabla: NDArray, m: dict) -> NDArray:
             # adag
             # todo: correct implementation
             gamma = nabla + h['lambda_d'] * theta
@@ -1039,7 +1034,7 @@ class Optimizers:
         # get method
         self._alg = algs[self._method]
 
-    def __call__(self, theta: Union[Tensor, np.ndarray], nabla: Union[Tensor, np.ndarray]) -> Union[Tensor, np.ndarray]:
+    def __call__(self, theta: Union[Matrix, NDArray], nabla: Union[Gradient, NDArray]) -> Union[Matrix, NDArray]:
         r"""
         **Optimization.**
 
@@ -1049,42 +1044,42 @@ class Optimizers:
         If NumPy arrays are used with correlator on, an error will most likely occur.
 
         Args:
-            theta (Tensor | np.ndarray): Initial theta.
-            nabla (Tensor | np.ndarray): Gradient.
+            theta (Tensor | NDArray): Initial theta.
+            nabla (Tensor | NDArray): Gradient.
 
         Returns:
-            Tensor | np.ndarray: Optimized theta.
+            Tensor | NDArray: Optimized theta.
 
         Raises:
             TypeError: If an invalid object was passed for the operation.
             ValueError: If there was a failed attempt at using the correlator for NumPy arrays.
         """
-        if isinstance(nabla, Tensor):
+        if isinstance(nabla, Gradient):
             # theta tensor
-            nabla = nabla.array
+            nabla = np.sum(nabla.tensor, axis=(0, 1))
         elif not isinstance(nabla, np.ndarray):
             # nabla error
             raise TypeError("Attempted optimization with an object that wasn't a matrix Tensor or NumPy array.")
 
-        if isinstance(theta, Tensor) and self._correlator:
+        if isinstance(theta, Matrix) and self._correlator:
             # theta tensor and correlator
             if theta.id not in self._memories.keys():
                 # add memory
-                self._memories.update({theta.id: self._get_memories(theta=theta.array)})
+                self._memories.update({theta.id: self._get_memories(theta=theta.tensor)})
             # method
-            result = Tensor(self._alg(theta=theta.array, nabla=nabla, m=self._memories[theta.id]))
+            result = Matrix(self._alg(theta=theta.tensor, nabla=nabla, m=self._memories[theta.id]))
             # id conserving
-            Tensor.replace(replaced=theta, replacer=result)
+            Matrix.replace(replaced=theta, replacer=result)
             return result
-        elif isinstance(theta, Tensor):
+        elif isinstance(theta, Matrix):
             # theta tensor
             if self._memories is None:
                 # initialize memory
-                self._memories = self._get_memories(theta=theta.array)
+                self._memories = self._get_memories(theta=theta.tensor)
             # method
-            result = Tensor(self._alg(theta=theta.array, nabla=nabla, m=self._memories))
+            result = Matrix(self._alg(theta=theta.tensor, nabla=nabla, m=self._memories))
             # id conserving
-            Tensor.replace(replaced=theta, replacer=result)
+            Matrix.replace(replaced=theta, replacer=result)
             return result
         elif isinstance(theta, np.ndarray) and not self._correlator:
             # theta array

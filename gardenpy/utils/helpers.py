@@ -10,7 +10,6 @@ Contains:
 """
 
 import sys
-from typing import Optional, Union
 import time
 
 # common ansi formats
@@ -43,14 +42,14 @@ ansi = {
 }
 
 
-def progress(idx: int, max_idx: int, *, desc: Optional[str] = None, b_len: int = 50, b_type: int = 0) -> None:
+def progress(idx: int, max_idx: int, *, desc: str | None = None, b_len: int = 50, b_type: int = 0) -> None:
     r"""
     **Customizable progress bar.**
 
     Args:
         idx (int), 0 < idx: Current loop index.
         max_idx (int), 0 < max_idx: Maximum loop index.
-        desc (str, optional), default = None: Progress bar description.
+        desc (str | None), default = None: Progress bar description.
         b_len (int), default = 50, 0 < b_len: Bar length.
         b_type (int), default = 0: Visual bar type.
 
@@ -101,7 +100,7 @@ def progress(idx: int, max_idx: int, *, desc: Optional[str] = None, b_len: int =
     return None
 
 
-def convert_time(seconds: Union[float, int]) -> str:
+def convert_time(seconds: float | int) -> str:
     r"""
     **Converts seconds to hours:minutes:seconds.**
 
@@ -124,7 +123,7 @@ def convert_time(seconds: Union[float, int]) -> str:
     return f"{hours:01}:{minutes:02}:{seconds:02}"
 
 
-def slow_print(text: str, *, delay: Union[float, int] = 0.05) -> None:
+def slow_print(text: str, *, delay: float | int = 0.05) -> None:
     r"""
     **Prints text with delay.**
 
@@ -148,7 +147,7 @@ def slow_print(text: str, *, delay: Union[float, int] = 0.05) -> None:
     return None
 
 
-def print_contributors(*, who: Optional[list] = None, cinematic: bool = False) -> None:
+def print_contributors(*, who: list[str] | None = None, cinematic: bool = False) -> None:
     r"""
     **Prints GardenPy contributors in alphabetical order.**
 
@@ -159,7 +158,7 @@ def print_contributors(*, who: Optional[list] = None, cinematic: bool = False) -
     project, and we wish to thank anyone who helped us in any way.
 
     Args:
-        who (list, optional), default = all: Type of contributors to print.
+        who (list | None), default = all: Type of contributors to print.
         cinematic (bool), default = False: Cinematic-style printing of contributors.
 
     Raises:
