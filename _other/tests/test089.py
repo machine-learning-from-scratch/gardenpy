@@ -11,7 +11,7 @@ import gardenpy as gp
 epochs = 10_000
 
 # parameters
-w1 = gp.Initializers('xavier')(2,4)
+w1 = gp.Initializers('xavier')(2, 4)
 b1 = gp.Initializers('uniform', kappa=0.0)(1, 4)
 w2 = gp.Initializers('xavier')(4, 2)
 b2 = gp.Initializers('uniform', kappa=0.0)(1, 2)
@@ -32,9 +32,9 @@ accu_loss = 0.0
 gp.progress(-1, epochs, b_len=100, b_type=2, desc="NaN")
 for epoch in range(1, epochs + 1):
     for x, y in zip(data, labels):
-        # tensor conversion
-        x = gp.tensor(x)
-        y = gp.tensor(y)
+        # matrix conversion
+        x = gp.matrix(x)
+        y = gp.matrix(y)
         # forward pass
         a1 = g(x @ w1 + b1)
         yhat = gl(a1 @ w2 + b2)
@@ -52,7 +52,7 @@ for epoch in range(1, epochs + 1):
         w2 = optim(theta=w2, nabla=d_w2)
         b2 = optim(theta=b2, nabla=d_b2)
         # accumulation prevention
-        accu_loss += loss.array.item()
+        accu_loss += loss.tensor.item()
         gp.zero_grad(w1, b1, w2, b2)
 
     # progress bar
@@ -65,9 +65,9 @@ for epoch in range(1, epochs + 1):
 outcomes = []
 
 for x, y in zip(data, labels):
-    # tensor conversion
-    x = gp.tensor(x)
-    y = gp.tensor(y)
+    # matrix conversion
+    x = gp.matrix(x)
+    y = gp.matrix(y)
     # forward pass
     a1 = g(x @ w1 + b1)
     yhat = g(a1 @ w2 + b2)

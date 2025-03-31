@@ -14,7 +14,7 @@ import gardenpy as gp
 epochs = 100_000
 
 # parameters
-w1 = gp.Initializers('xavier')(2,4).array
+w1 = gp.Initializers('xavier')(2, 4).array
 b1 = gp.Initializers('uniform', kappa=0.0)(1, 4).array
 w2 = gp.Initializers('xavier')(4, 2).array
 b2 = gp.Initializers('uniform', kappa=0.0)(1, 2).array

@@ -311,7 +311,7 @@ class _Tensor(ABC):
         return [itm.internals if itm is not None else None for itm in cls._cache]
 
     @classmethod
-    def reference(cls, idx: str | int) -> T:
+    def reference(cls, idx: str | int) -> T | None:
         r"""
         **Gets Tensor from an index reference.**
 
@@ -319,11 +319,14 @@ class _Tensor(ABC):
             idx (str | int): Index reference to a Tensor in the cache.
 
         Returns:
-            Tensor: Referenced Tensor.
+            Tensor | None: Referenced Tensor.
 
         Raises:
-            ValueError: Invalid Tensor reference.
-            TypeError: Invalid reference type or deleted Tensor reference.
+            TypeError: Invalid reference type.
+            ValueError: Invalid reference.
+            UserWarning: The function is used to reference a deleted Tensor.
+                Turned off by toggling ikwiad.
+                See :func:`_Tensor.ikwiad`.
         """
         # reference tensors
         tensor, _ = cls._reference_tensor(itm=idx)
@@ -398,7 +401,7 @@ class _Tensor(ABC):
             itm._id = open_id
 
     @classmethod
-    def _reference_tensor(cls, itm: Self | str | int) -> tuple[T, int]:
+    def _reference_tensor(cls, itm: Self | str | int) -> tuple[T, int] | tuple[None, None]:
         # ikwiad on
         user_ikwiad = _Tensor._ikwiad
         _Tensor._ikwiad = True
@@ -407,7 +410,7 @@ class _Tensor(ABC):
             # prefix and id reference
             _prefix, itm = itm[0], int(itm[1:], 16)
         except (ValueError, TypeError):
-            # failed attempt
+            # failed id reference attempt
             pass
 
         if isinstance(itm, _Tensor):
@@ -440,16 +443,23 @@ class _Tensor(ABC):
             itm = cls._cache[itm_id]
         else:
             # invalid reference
-            raise TypeError(
-                "Invalid reference type: Reference should be made with a "
-                "Tensor instance, reference id, or cache index."
-            )
+            if not user_ikwiad:
+                warn(
+                    "Reference was made with an invalid reference type. "
+                    "Reference should be made with a Tensor instance, reference id, or cache index. "
+                    "This invalid reference will likely result in an error, but will return (None, None) for now.",
+                    UserWarning
+                )
+            return None, None
         if itm is None or itm_id is None:
             # invalid tensor
-            raise TypeError(
-                "Invalid final reference: Referenced location is an empty spot within the subclass's cache "
-                "or an invalid object."
-            )
+            if not user_ikwiad:
+                warn(
+                    "Reference was made to am empty spot within the subclass's cache or an invalid object. "
+                    "This invalid reference will likely result in an error, but will return (None, None) for now.",
+                    UserWarning
+                )
+            return None, None
 
         # ikwiad reset
         _Tensor._ikwiad = user_ikwiad
@@ -1563,6 +1573,10 @@ class Gradient(_Tensor):
             This also won't result in any difference for the calculated gradient.
         """
         # check matrices
+        print()
+        print(grad.internals)
+        print(wrt.internals)
+        print()
         if not isinstance(grad, Matrix) and Matrix._is_valid_tensor(itm=grad):
             raise TypeError(
                 f"Invalid type: Gradient calculation can only be done with valid Matrix objects. "
@@ -1590,7 +1604,7 @@ class Gradient(_Tensor):
             # Non-Matrix objects are still used in computation if necessary.
             if binary and relation is None and isinstance(item, Matrix):
                 # get origins
-                origins = [Matrix.reference(idx=org) for org in item.tracker['origin']]
+                origins = [Matrix.reference(idx=org) for org in item.tracker['origin'] if org is not None]
                 trace.append(item)
                 if target in origins:
                     # related
@@ -1601,7 +1615,7 @@ class Gradient(_Tensor):
                     [_relate(item=origin, target=target, trace=trace.copy()) for origin in origins]
             elif not binary and isinstance(item, Matrix):
                 # get origins
-                origins = [Matrix.reference(org) for org in item.tracker['origin']]
+                origins = [Matrix.reference(org) for org in item.tracker['origin'] if org is not None]
                 trace.append(item)
                 if target in origins:
                     # related
@@ -1611,8 +1625,14 @@ class Gradient(_Tensor):
                     # continue search
                     [_relate(item=origin, target=target, trace=trace.copy()) for origin in origins]
 
+        # ikwiad on
+        user_ikwiad = _Tensor._ikwiad
+        _Tensor._ikwiad = True
         # relate matrices
         _relate(wrt, grad)
+        # ikwiad reset
+        _Tensor._ikwiad = user_ikwiad
+
         if not relation:
             # no relation
             raise TrackingError(grad=grad, wrt=wrt, message=(
@@ -1625,12 +1645,19 @@ class Gradient(_Tensor):
             ))
 
         def _derive(up: Matrix, down: Matrix) -> NDArray:
+            # ikwiad on
+            user_relation_ikwiad = _Tensor._ikwiad
+            _Tensor._ikwiad = True
+
             # get relations
-            strm_result = [Matrix.reference(idx=rlt_itm[1]) for rlt_itm in up.tracker['relation']]
-            strm_other = [Matrix.reference(idx=rlt_itm[0]) for rlt_itm in up.tracker['relation']]
+            strm_other = [Matrix.reference(idx=itm[0]) for itm in up.tracker['relation']]
+            strm_result = [Matrix.reference(idx=itm[1]) for itm in up.tracker['relation']]
             # get operation
             drv_operator = up.tracker['derivative'][strm_result.index(down)]
             other = strm_other[strm_result.index(down)]
+
+            # ikwiad reset
+            _Tensor._ikwiad = user_relation_ikwiad
 
             if isinstance(other, Matrix):
                 # get value
