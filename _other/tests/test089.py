@@ -29,7 +29,7 @@ labels = [[[0, 1]], [[1, 0]], [[1, 0]], [[0, 1]]]
 
 # training
 accu_loss = 0.0
-gp.progress(-1, epochs, b_len=100, b_type=2, desc="NaN")
+gp.progress(-1, epochs, b_len=100, b_type=1, desc="NaN")
 for epoch in range(1, epochs + 1):
     for x, y in zip(data, labels):
         # matrix conversion
@@ -56,7 +56,7 @@ for epoch in range(1, epochs + 1):
         gp.zero_grad(w1, b1, w2, b2)
 
     # progress bar
-    gp.progress(epoch - 1, epochs, b_len=100, b_type=2, desc=f"{accu_loss:.10f}")
+    gp.progress(epoch - 1, epochs, b_len=100, b_type=1, desc=f"{accu_loss:.10f}")
     accu_loss = 0
 
 ########################################################################################################################

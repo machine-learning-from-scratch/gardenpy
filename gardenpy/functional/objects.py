@@ -11,6 +11,7 @@ Contains:
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from typing import Self, TypeVar
 from warnings import warn
 import numpy as np
@@ -87,6 +88,7 @@ class _Tensor(ABC):
         self._tracker: dict[str, T | list | None] | None = None
         # other internals
         self._tags: list[str] = []
+        self._ndim = _ndim
 
         # cache instance
         self._add_cache(itm=self)
@@ -132,6 +134,48 @@ class _Tensor(ABC):
         self._is_valid_tensor(itm=self)
         return self._tensor
 
+    @tensor.setter
+    def tensor(self, obj: any) -> None:
+        r"""
+        **Alteration of a Tensor's internal NumPy array.**
+
+        Returns:
+            np.ndarray | None: Tensor's internal NumPy array.
+                Returns None if the function is used on a deleted Tensor.
+
+        Raises:
+            TypeError: Object wasn't an _ndim-dimensional array consisting of only real numbers.
+            UserWarning: The function is used on a deleted Tensor.
+                Turned off by toggling ikwiad.
+                See :func:`_Tensor.ikwiad`.
+
+        Note:
+            While you can change the shape of the tensor, it's strongly recommended that you do not.
+            Changes in tensor shape can result in strange and hard to trace errors with gradient calculation.
+
+        Note:
+            All objects will undergo NumPy array conversion.
+        """
+        self._is_valid_tensor(itm=self)
+        # verify object
+        obj = np.array(obj)
+        if not np.issubdtype(obj.dtype, np.number) or obj.ndim != self._ndim:
+            # reiteration of __init__ script.
+            raise TypeError(
+                f"Failed tensor change: Input object failed to be all numbers or "
+                f"failed to match the given ndim of {self._ndim} (obj ndim of {obj.ndim}). "
+                f"This could have been caused by inserting two non-array type items into a function that allows one of "
+                f"the items to be a non-array type."
+            )
+        if obj.shape != self._tensor.shape and not _Tensor._ikwiad:
+            # shape change
+            warn(
+                "Replacing tensor wasn't the same shape as the original tensor. "
+                "This could result in hard to trace errors.",
+                UserWarning
+            )
+        self._tensor = obj
+
     @property
     def shape(self) -> tuple[int, ...] | None:
         r"""
@@ -168,7 +212,7 @@ class _Tensor(ABC):
             'track retain' retains the tracker on a Matrix-type _Tensor if :func:`Matrix.track_retain` is run.
         """
         self._is_valid_tensor(itm=self)
-        return self._tags
+        return self._tags.copy()
 
     @property
     def tracker(self) -> dict[str, T | list | str | None] | None:
@@ -196,7 +240,7 @@ class _Tensor(ABC):
         # ikwiad reset
         _Tensor._ikwiad = user_ikwiad
         # tracking internals
-        return {'id': self.id, 'tags': self._tags, **alt_tracker}
+        return {'id': self.id, 'tags': self.tags, **alt_tracker}
 
     @property
     def internals(self) -> dict[str, T | list | str | None] | None:
@@ -224,7 +268,7 @@ class _Tensor(ABC):
         # ikwiad reset
         _Tensor._ikwiad = user_ikwiad
         # full internals
-        return {'id': self.id, 'tags': self._tags, 'shape': self.shape, **alt_tracker}
+        return {'id': self.id, 'tags': self.tags, 'shape': self.shape, **alt_tracker}
 
     def add_tags(self, *args: str) -> None:
         r"""
@@ -534,7 +578,7 @@ class Matrix(_Tensor):
         super().__init__(obj=obj, _ndim=2)
         # matrix subclass internals
         self._default_tracker = {'derivative': [], 'relation': [], 'origin': []}
-        self._tracker = self._default_tracker.copy()
+        self._tracker = deepcopy(self._default_tracker)
 
     def instance_track_reset(self) -> None:
         r"""
@@ -547,7 +591,7 @@ class Matrix(_Tensor):
         """
         if self._is_valid_tensor(itm=self):
             # reset tracker
-            self._tracker = self._default_tracker.copy()
+            self._tracker = deepcopy(self._default_tracker)
         return None
 
     def copy(self) -> Matrix | None:
@@ -570,13 +614,14 @@ class Matrix(_Tensor):
         return None
 
     @classmethod
-    def replace(cls, replaced: Matrix | str | int, replacer: Matrix | str | int) -> None:
+    def replace(cls, replaced: Matrix | str | int, replacer: Matrix | str | int, *, move_tags: bool = False) -> None:
         r"""
         **Replaces a Matrix with another Matrix in the reference list.
 
         Parameters:
             replaced (Matrix | str | int): Replaced Matrix.
             replacer (Matrix | str | int): Replacer Matrix.
+            move_tags (bool), default = False: Move tags.
 
         Raises:
             ValueError: Invalid Matrix reference.
@@ -585,10 +630,11 @@ class Matrix(_Tensor):
         Note:
             Deletes the replaced Tensor using :func:`Matrix.instance_reset`.
         """
-        # todo: this makes bad copies, not full copies
         # find replaced and replacer information
         replaced_itm, replaced_id = cls._reference_tensor(itm=replaced)
         replacer_itm, replacer_id = cls._reference_tensor(itm=replacer)
+        if move_tags:
+            replacer_itm._tags = replaced_itm.tags
         # move replacer and delete replaced
         replaced.instance_reset()
         replacer._id = replaced_id
@@ -627,9 +673,9 @@ class Matrix(_Tensor):
     def _track_instance(self) -> dict[str, any]:
         # repr to hex
         alt_tracker = {
-            'derivative': self._tracker.copy()['derivative'],
-            'relation': self._unpack_ids(self._tracker.copy()['relation']),
-            'origin': self._unpack_ids(self._tracker.copy()['origin'])
+            'derivative': self._tracker['derivative'],
+            'relation': self._unpack_ids(self._tracker['relation']),
+            'origin': self._unpack_ids(self._tracker['origin'])
         }
         return alt_tracker
 
@@ -1505,7 +1551,7 @@ class Gradient(_Tensor):
         super().__init__(obj=obj, _ndim=4)
         # gradient subclass internals
         self._default_tracker = {'chain': []}
-        self._tracker = self._default_tracker.copy()
+        self._tracker = deepcopy(self._default_tracker)
 
     def reduce_grad(self) -> Matrix | None:
         r"""
@@ -1530,7 +1576,7 @@ class Gradient(_Tensor):
         return None
 
     def _track_instance(self) -> dict[str, any]:
-        alt_tracker = {'chain': self._unpack_ids(self._tracker.copy()['chain'])}
+        alt_tracker = {'chain': self._unpack_ids(self._tracker['chain'])}
         return alt_tracker
 
     @staticmethod
@@ -1722,7 +1768,7 @@ class Gradient(_Tensor):
         Checks if there is an immediate link between the downstream and upstream gradients.
         If there is a link, the chain-rule operation is called to link the gradients.
 
-        Args:
+        Parameters:
             up (Gradient): Downstream gradient.
             down (Gradient): Upstream gradient.
 

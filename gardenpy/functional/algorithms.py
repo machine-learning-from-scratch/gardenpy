@@ -1034,7 +1034,8 @@ class Optimizers:
         # get method
         self._alg = algs[self._method]
 
-    def __call__(self, theta: Union[Matrix, NDArray], nabla: Union[Gradient, NDArray]) -> Union[Matrix, NDArray]:
+    # todo: this logic is very weird
+    def __call__(self, theta: Union[Matrix, NDArray], nabla: Union[Gradient, NDArray]) -> None:
         r"""
         **Optimization.**
 
@@ -1067,10 +1068,9 @@ class Optimizers:
                 # add memory
                 self._memories.update({theta.id: self._get_memories(theta=theta.tensor)})
             # method
-            result = Matrix(self._alg(theta=theta.tensor, nabla=nabla, m=self._memories[theta.id]))
+            result = self._alg(theta=theta.tensor, nabla=nabla, m=self._memories[theta.id])
             # id conserving
-            Matrix.replace(replaced=theta, replacer=result)
-            return result
+            theta.tensor = result
         elif isinstance(theta, Matrix):
             # theta tensor
             if self._memories is None:
@@ -1080,14 +1080,13 @@ class Optimizers:
             result = Matrix(self._alg(theta=theta.tensor, nabla=nabla, m=self._memories))
             # id conserving
             Matrix.replace(replaced=theta, replacer=result)
-            return result
         elif isinstance(theta, np.ndarray) and not self._correlator:
             # theta array
             if self._memories is None:
                 # initialize memory
                 self._memories = self._get_memories(theta=theta)
             # method
-            return self._alg(theta=theta, nabla=nabla, m=self._memories)
         else:
             # theta error
             raise ValueError("Attempted correlator reference with arrays.")
+        return None

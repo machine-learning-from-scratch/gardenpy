@@ -3,6 +3,18 @@ from numpy.typing import NDArray
 
 
 def inf_remove(*, inf_val: float | int = 1e10) -> callable:
+    r"""
+    **Replaces infinity with a finite value.
+
+    Parameters:
+        inf_val: Replaced infinity value.
+
+    Returns:
+        callable: Callable function
+
+    Raises:
+        AssertionError: Invalid inf_val value.
+    """
     # check inf_val
     assert isinstance(inf_val, float | int) and 0 < inf_val, "inf_val must be a positive number."
 

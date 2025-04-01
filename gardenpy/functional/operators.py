@@ -76,7 +76,7 @@ def zero_grad(*args: Matrix | str):
     Gradient.reset()
     See raw functions themselves to understand function logic.
 
-    Args:
+    Parameters:
         *args (Matrix | str): Matrices to save from deletion.
 
     Raises:
@@ -89,6 +89,43 @@ def zero_grad(*args: Matrix | str):
     Gradient.reset()
 
 
+def add_tags(items: list[Matrix | Gradient], tags: list[str | list[str]]) -> None:
+    r"""
+    **Adds tags to multiple objects at once.**
+
+    Parameters:
+        items (list): Items to add tags to.
+        tags (list): Tags.
+
+    Raises:
+        TypeError: Invalid items or tags.
+        ValueError: Item and tag amount mismatch.
+    """
+    if not all([isinstance(itm, (Matrix, Gradient)) for itm in items]):
+        raise TypeError(
+            f"Invalid type: All items must be Matrices or Gradients. "
+            f"Received types {[type(itm) for itm in items]}."
+        )
+    if not all([isinstance(itm, (list, str)) for itm in tags]):
+        raise TypeError(
+            f"Invalid type: All tags must be strings or lists. "
+            f"Received types {[type(itm) for itm in tags]}."
+        )
+    if len(items) != len(tags):
+        raise ValueError(
+            f"Size mismatch: The number of items and tags mismatched. "
+            f"Received {len(items)} items and {len(tags)} tags."
+        )
+    for itm, tag in zip(items, tags):
+        if isinstance(tag, str):
+            # add single tag
+            itm.add_tags(tag)
+        elif isinstance(tag, list):
+            # add all tags
+            itm.add_tags(*tag)
+    return None
+
+
 @wraps(wrapped=Matrix.replace)
-def replace(replaced: Matrix | str | int, replacer: Matrix | str | int) -> None:
-    return Matrix.replace(replaced=replaced, replacer=replacer)
+def replace(replaced: Matrix | str | int, replacer: Matrix | str | int, *, move_tags: bool = False) -> None:
+    return Matrix.replace(replaced=replaced, replacer=replacer, move_tags=move_tags)
