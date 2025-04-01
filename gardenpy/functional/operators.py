@@ -78,6 +78,11 @@ def zero_grad(*args: Matrix | str):
 
     Args:
         *args (Matrix | str): Matrices to save from deletion.
+
+    Raises:
+        UserWarning: The function is used to reference a deleted Tensor.
+            Turned off by toggling ikwiad.
+            See :func:`_Tensor.ikwiad`.
     """
     Matrix.reset(*args)
     Matrix.track_reset()

@@ -32,9 +32,18 @@ labels = [[[0, 1]], [[1, 0]], [[1, 0]], [[0, 1]]]
 
 # training
 accu_loss = 0.0
-gp.progress(-1, epochs, b_len=100, b_type=2, desc="NaN")
+# gp.progress(-1, epochs, b_len=100, b_type=2, desc="NaN")
 for epoch in range(1, epochs + 1):
-    for x, y in zip(data, labels):
+    for i, (x, y) in enumerate(zip(data, labels)):
+        # debug 0
+        gp.Matrix.ikwiad(True)
+        print(f"ITERATION {i}")
+        print("INITIAL CACHES\n")
+        print(gp.Matrix.cache_debug())
+        print()
+        print(gp.Gradient.cache_debug())
+        print()
+        gp.Matrix.ikwiad(False)
         # matrix conversion
         x = gp.matrix(x)
         y = gp.matrix(y)
@@ -49,26 +58,47 @@ for epoch in range(1, epochs + 1):
         loss.add_tag('loss')
         # backward pass
         d_yhat = gp.nabla(yhat, loss)
-        print()
-        print(gp.Matrix.cache_debug())
-        print()
-        print(gp.Gradient.cache_debug())
-        d_b2 = gp.chain(gp.nabla(b2, yhat), d_yhat)  # todo
+        d_b2 = gp.chain(gp.nabla(b2, yhat), d_yhat)
         d_w2 = gp.chain(gp.nabla(w2, yhat), d_yhat)
         d_a1 = gp.chain(gp.nabla(a1, yhat), d_yhat)
         d_b1 = gp.chain(gp.nabla(b1, a1), d_a1)
         d_w1 = gp.chain(gp.nabla(w1, a1), d_a1)
+        # debug 1
+        gp.Matrix.ikwiad(True)
+        print("INTERMEDIATE CACHES\n")
+        print(gp.Matrix.cache_debug())
+        print()
+        print(gp.Gradient.cache_debug())
+        print()
+        gp.Matrix.ikwiad(False)
         # optimization
+        # NB: Cause of breaks
         w1 = optim(theta=w1, nabla=d_w1)
         b1 = optim(theta=b1, nabla=d_b1)
         w2 = optim(theta=w2, nabla=d_w2)
         b2 = optim(theta=b2, nabla=d_b2)
+        # debug 2
+        gp.Matrix.ikwiad(True)
+        print("OPTIMIZED CACHES\n")
+        print(gp.Matrix.cache_debug())
+        print()
+        print(gp.Gradient.cache_debug())
+        print()
+        gp.Matrix.ikwiad(False)
         # accumulation prevention
         accu_loss += loss.tensor.item()
-        gp.zero_grad(w1, b1, w2, b2)
+        # gp.zero_grad(w1, b1, w2, b2)  # NB: Currently breaks.
+        # debug 3
+        gp.Matrix.ikwiad(True)
+        print("FINAL CACHES\n")
+        print(gp.Matrix.cache_debug())
+        print()
+        print(gp.Gradient.cache_debug())
+        print()
+        gp.Matrix.ikwiad(False)
 
     # progress bar
-    gp.progress(epoch - 1, epochs, b_len=100, b_type=2, desc=f"{accu_loss:.10f}")
+    # gp.progress(epoch - 1, epochs, b_len=100, b_type=2, desc=f"{accu_loss:.10f}")
     accu_loss = 0
 
 ########################################################################################################################

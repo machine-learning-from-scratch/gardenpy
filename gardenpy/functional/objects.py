@@ -343,12 +343,18 @@ class _Tensor(ABC):
         Note:
             If 'retain' is in a Tensor's tags, the Tensor will be automatically saved.
             To delete this Tensor, either reset it using :func:`_Tensor.instance_reset` or remove 'retain'.
+
+        Raises:
+            UserWarning: The function is used to reference a deleted Tensor.
+                Turned off by toggling ikwiad.
+                See :func:`_Tensor.ikwiad`.
         """
         # saved tensors
         args = list(args)
         arg_ids = []
         for arg in args:
             _, arg_id = cls._reference_tensor(itm=arg)
+            arg_ids.append(arg_id)
         # removed tensors
         removed_tensors = [
             itm for i, itm in enumerate(cls._cache)
@@ -1573,16 +1579,12 @@ class Gradient(_Tensor):
             This also won't result in any difference for the calculated gradient.
         """
         # check matrices
-        print()
-        print(grad.internals)
-        print(wrt.internals)
-        print()
-        if not isinstance(grad, Matrix) and Matrix._is_valid_tensor(itm=grad):
+        if not (isinstance(grad, Matrix) and Matrix._is_valid_tensor(itm=grad)):
             raise TypeError(
                 f"Invalid type: Gradient calculation can only be done with valid Matrix objects. "
                 f"Received grad object of type {type(grad)}."
             )
-        if not isinstance(wrt, Matrix) and Matrix._is_valid_tensor(itm=wrt):
+        if not (isinstance(wrt, Matrix) and Matrix._is_valid_tensor(itm=wrt)):
             raise TypeError(
                 f"Invalid type: Gradient calculation can only be done with valid Matrix objects. "
                 f"Received wrt object of type {type(wrt)}."
@@ -1733,12 +1735,12 @@ class Gradient(_Tensor):
             Computational speed can be increased by using pre-calculated gradients and manually calling this function.
         """
         # check gradients
-        if not isinstance(up, Gradient) and Gradient._is_valid_tensor(itm=up):
+        if not (isinstance(up, Gradient) and Gradient._is_valid_tensor(itm=up)):
             raise TypeError(
                 f"Invalid type: Chain-ruling can only be done with valid Gradient objects. "
                 f"Received up object of type {type(up)}."
             )
-        if not isinstance(down, Gradient) and Gradient._is_valid_tensor(itm=up):
+        if not (isinstance(down, Gradient) and Gradient._is_valid_tensor(itm=up)):
             raise TypeError(
                 f"Invalid type: Chain-ruling can only be done with valid Gradient objects. "
                 f"Received down object of type {type(down)}."
