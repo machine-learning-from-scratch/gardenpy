@@ -11,7 +11,6 @@ Contains:
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from copy import deepcopy
 from typing import Self, TypeVar
 from warnings import warn
 import numpy as np
@@ -517,6 +516,12 @@ class _Tensor(ABC):
         _Tensor._ikwiad = user_ikwiad
         return itm, itm_id
 
+    def _set_tracker(self) -> None:
+        self._tracker = self._default_tracker.copy()
+        for key in self._default_tracker.keys():
+            self._tracker[key] = []
+        return None
+
     def _unpack_ids(self, itm: T | list | property | None) -> list | str | float | int | None:
         if isinstance(itm, _Tensor):
             # id reference
@@ -577,8 +582,8 @@ class Matrix(_Tensor):
         """
         super().__init__(obj=obj, _ndim=2)
         # matrix subclass internals
-        self._default_tracker = {'derivative': [], 'relation': [], 'origin': []}
-        self._tracker = deepcopy(self._default_tracker)
+        self._default_tracker = {'derivative': None, 'relation': None, 'origin': None}
+        self._set_tracker()
 
     def instance_track_reset(self) -> None:
         r"""
@@ -591,7 +596,7 @@ class Matrix(_Tensor):
         """
         if self._is_valid_tensor(itm=self):
             # reset tracker
-            self._tracker = deepcopy(self._default_tracker)
+            self._set_tracker()
         return None
 
     def copy(self) -> Matrix | None:
@@ -1550,8 +1555,8 @@ class Gradient(_Tensor):
         assert _override, "Raw Gradient creation isn't recommended; to create a Gradient object, signal override."
         super().__init__(obj=obj, _ndim=4)
         # gradient subclass internals
-        self._default_tracker = {'chain': []}
-        self._tracker = deepcopy(self._default_tracker)
+        self._default_tracker = {'chain': None}
+        self._set_tracker()
 
     def reduce_grad(self) -> Matrix | None:
         r"""

@@ -4,11 +4,12 @@ SSR
 """
 
 import gardenpy as gp
+import time
 
 ########################################################################################################################
 
 # training parameters
-epochs = 10_000
+epochs = 1_000
 
 # parameters
 w1 = gp.Initializers('xavier')(2, 4)
@@ -30,6 +31,8 @@ data = [[[0, 0]], [[0, 1]], [[1, 0]], [[1, 1]]]
 labels = [[[0, 1]], [[1, 0]], [[1, 0]], [[0, 1]]]
 
 ########################################################################################################################
+
+start_time = time.perf_counter()
 
 # training
 accu_loss = 0.0
@@ -63,6 +66,8 @@ for epoch in range(1, epochs + 1):
     # reset accumulation loss
     accu_loss = 0
 
+end_time = time.perf_counter()
+
 ########################################################################################################################
 
 # outcome list
@@ -81,3 +86,6 @@ for x, y in zip(data, labels):
 for outcome in outcomes:
     # print outcomes
     print(f"predicted: {str(outcome[0])[1:-1]}  expected: {str(outcome[1])[1:-1]}")
+
+# elapsed time
+print(f"elapsed time: {end_time - start_time}")
