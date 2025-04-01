@@ -9,7 +9,7 @@ import time
 ########################################################################################################################
 
 # training parameters
-epochs = 10_000
+epochs = 1_000
 
 # parameters
 w1 = gp.Initializers('xavier')(2, 4)

@@ -1660,7 +1660,7 @@ class Gradient(_Tensor):
             # Non-Matrix objects are still used in computation if necessary.
             if binary and relation is None and isinstance(item, Matrix):
                 # get origins
-                origins = [Matrix.reference(idx=org) for org in item.tracker['origin'] if org is not None]
+                origins = item._tracker['origin']
                 trace.append(item)
                 if target in origins:
                     # related
@@ -1671,7 +1671,7 @@ class Gradient(_Tensor):
                     [_relate(item=origin, target=target, trace=trace.copy()) for origin in origins]
             elif not binary and isinstance(item, Matrix):
                 # get origins
-                origins = [Matrix.reference(org) for org in item.tracker['origin'] if org is not None]
+                origins = item._tracker['origin']
                 trace.append(item)
                 if target in origins:
                     # related
@@ -1706,8 +1706,8 @@ class Gradient(_Tensor):
             _Tensor._ikwiad = True
 
             # get relations
-            strm_other = [Matrix.reference(idx=itm[0]) for itm in up.tracker['relation']]
-            strm_result = [Matrix.reference(idx=itm[1]) for itm in up.tracker['relation']]
+            strm_other = [itm[0] for itm in up._tracker['relation']]
+            strm_result = [itm[1] for itm in up._tracker['relation']]
             # get operation
             drv_operator = up.tracker['derivative'][strm_result.index(down)]
             other = strm_other[strm_result.index(down)]
