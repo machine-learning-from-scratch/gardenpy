@@ -43,7 +43,7 @@ add_tags(items=[w1, b1, w2, b2], tags=[['w1', 'retain'], ['b1', 'retain'], ['w2'
 # hyperparameters
 g = gp.Activators('lrelu', beta=0.1)
 criterion = gp.Losses('ssr')
-optim = gp.Optimizers('rmsp', alpha=1e-02)
+optim = gp.Optimizers('rmsp', alpha=1e-03)
 
 # data
 data = [[[0, 0]], [[0, 1]], [[1, 0]], [[1, 1]]]
