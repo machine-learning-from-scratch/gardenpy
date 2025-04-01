@@ -585,13 +585,14 @@ class Matrix(_Tensor):
         Note:
             Deletes the replaced Tensor using :func:`Matrix.instance_reset`.
         """
+        # todo: this makes bad copies, not full copies
         # find replaced and replacer information
         replaced_itm, replaced_id = cls._reference_tensor(itm=replaced)
         replacer_itm, replacer_id = cls._reference_tensor(itm=replacer)
         # move replacer and delete replaced
         replaced.instance_reset()
-        replacer._id = replaced._id
-        cls._cache[replaced_id] = replaced_itm
+        replacer._id = replaced_id
+        cls._cache[replaced_id] = replacer_itm
         cls._cache[replacer_id] = None
         return None
 

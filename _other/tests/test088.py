@@ -12,10 +12,8 @@ import gardenpy as gp
 def print_cache_debug(title: str) -> None:
     gp.Matrix.ikwiad(True)
     print(f"{title}\n")
-    print(f"MATRICES: {gp.Matrix.cache_debug()}")
-    print()
-    print(f"GRADIENTS: {gp.Gradient.cache_debug()}")
-    print()
+    print(f"MATRICES: {gp.Matrix.cache_debug()}\n")
+    print(f"GRADIENTS: {gp.Gradient.cache_debug()}\n")
     return None
 
 
@@ -32,7 +30,7 @@ def add_tags(items: list[gp.Matrix | gp.Gradient], tags: list[str | list[str]]) 
 ########################################################################################################################
 
 # training parameters
-epochs = 10_000
+epochs = 1_000
 
 # parameters
 w1 = gp.Initializers('xavier')(2, 4)
@@ -54,12 +52,12 @@ labels = [[[0, 1]], [[1, 0]], [[1, 0]], [[0, 1]]]
 
 # training
 accu_loss = 0.0
-# gp.progress(-1, epochs, b_len=100, b_type=2, desc="NaN")
+gp.progress(-1, epochs, b_len=100, b_type=1, desc="NaN")
 for epoch in range(1, epochs + 1):
     for i, (x, y) in enumerate(zip(data, labels)):
         # debug 0
-        print(f"ITERATION {i}")
-        print_cache_debug(title='INITIAL CACHES')
+        # print(f"ITERATION {i}")
+        # print_cache_debug(title='INITIAL CACHES')
         # matrix conversion
         x = gp.matrix(x)
         y = gp.matrix(y)
@@ -79,25 +77,26 @@ for epoch in range(1, epochs + 1):
         # debug tags
         add_tags(items=[d_yhat, d_b2, d_w2, d_a1, d_b1, d_w1], tags=['d_yhat', 'd_b2', 'd_w2', 'd_a1', 'd_b1', 'd_w1'])
         # debug 1
-        print_cache_debug(title='INTERMEDIATE CACHES')
+        # print_cache_debug(title='INTERMEDIATE CACHES')
         # optimization
-        # NB: Cause of breaks
         w1 = optim(theta=w1, nabla=d_w1)
         b1 = optim(theta=b1, nabla=d_b1)
         w2 = optim(theta=w2, nabla=d_w2)
         b2 = optim(theta=b2, nabla=d_b2)
         # debug 2
-        print_cache_debug(title='OPTIMIZED CACHES')
+        # print_cache_debug(title='OPTIMIZED CACHES')
         # accumulation prevention
         accu_loss += loss.tensor.item()
-        # gp.zero_grad()  # NB: Currently breaks.
+        gp.zero_grad(w1, b1, w2, b2)
+        # internal tags
+        add_tags(items=[w1, b1, w2, b2], tags=[['w1', 'retain'], ['b1', 'retain'], ['w2', 'retain'], ['b2', 'retain']])
         # debug 3
-        print_cache_debug(title='FINAL CACHES')
+        # print_cache_debug(title='FINAL CACHES')
 
-    raise RuntimeError  # my computer will explode if i let this continue once it's fixed
+    # raise RuntimeError  # my computer will explode if i let this continue once it's fixed
 
     # progress bar
-    # gp.progress(epoch - 1, epochs, b_len=100, b_type=2, desc=f"{accu_loss:.10f}")
+    gp.progress(epoch - 1, epochs, b_len=100, b_type=1, desc=f"{accu_loss:.10f}")
     # reset accumulation loss
     accu_loss = 0
 
