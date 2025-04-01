@@ -226,12 +226,12 @@ class _Tensor(ABC):
         # full internals
         return {'id': self.id, 'tags': self._tags, 'shape': self.shape, **alt_tracker}
 
-    def add_tag(self, tag: str) -> None:
+    def add_tags(self, *args: str) -> None:
         r"""
-        **Add a tag to a Tensor's tags.**
+        **Add tags to a Tensor's tags.**
 
         Parameters:
-            tag (str): Added tag.
+            *args (str): Added tags.
 
         Raises:
             UserWarning: The function is used on a deleted Tensor.
@@ -239,15 +239,16 @@ class _Tensor(ABC):
                 See :func:`_Tensor.ikwiad`.
         """
         self._is_valid_tensor(itm=self)
-        self._tags.append(str(tag))
+        for tag in args:
+            self._tags.append(str(tag))
         return None
 
-    def remove_tag(self, tag: str) -> None:
+    def remove_tags(self, *args: str) -> None:
         r"""
-        **Removes a tag to a Tensor's tags.**
+        **Removes tags from a Tensor's tags.**
 
         Parameters:
-            tag (str): Removed tag.
+            *args (str): Removed tags.
 
         Raises:
             UserWarning: The function is used on a deleted Tensor.
@@ -259,10 +260,11 @@ class _Tensor(ABC):
                 See :func:`_Tensor.ikwiad`.
         """
         self._is_valid_tensor(itm=self)
-        if tag in self._tags:
-            self._tags.remove(str(tag))
-        elif not _Tensor._ikwiad:
-            warn(f"Referenced tag ({tag}) wasn't found in the in the instances tags ({self._tags}).", UserWarning)
+        for tag in args:
+            if tag in self._tags:
+                self._tags.remove(str(tag))
+            elif not _Tensor._ikwiad:
+                warn(f"Referenced tag ({tag}) wasn't found in the in the instances tags ({self._tags}).", UserWarning)
         return None
 
     def instance_reset(self) -> None:
