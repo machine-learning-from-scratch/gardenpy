@@ -31,7 +31,7 @@ def add_tags(items: list[gp.Matrix | gp.Gradient], tags: list[str | list[str]]) 
 ########################################################################################################################
 
 # training parameters
-epochs = 5_000
+epochs = 1_000
 
 # parameters
 w1 = gp.Initializers('xavier')(2, 4)
