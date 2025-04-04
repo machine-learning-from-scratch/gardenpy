@@ -5,6 +5,7 @@ Contains:
     - :class:`Params`
     - :class:`ParamChecker`
 """
+# todo: check logic (might need deepcopy?)
 
 from types import LambdaType
 from warnings import warn
