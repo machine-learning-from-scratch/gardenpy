@@ -55,7 +55,8 @@ class _Tensor(ABC):
 
         Parameters:
             obj (any): Object to be turned into a Tensor.
-            _ndim (int), 0 < _ndim: Allowed dimensions of the Tensor object.
+            _ndim (int): Allowed dimensions of the Tensor object.
+                0 < _ndim.
 
         Raises:
             TypeError: Object wasn't an _ndim-dimensional array consisting of only real numbers.
@@ -122,7 +123,7 @@ class _Tensor(ABC):
         **Tensor's internal NumPy array.**
 
         Returns:
-            np.ndarray | None: Tensor's internal NumPy array.
+            NDArray | None: Tensor's internal NumPy array.
                 Returns None if the function is used on a deleted Tensor.
 
         Raises:
@@ -138,9 +139,8 @@ class _Tensor(ABC):
         r"""
         **Alteration of a Tensor's internal NumPy array.**
 
-        Returns:
-            np.ndarray | None: Tensor's internal NumPy array.
-                Returns None if the function is used on a deleted Tensor.
+        Parameters:
+            obj (any): New internal NumPy array. Instantiation logic follows __init__ logic.
 
         Raises:
             TypeError: Object wasn't an _ndim-dimensional array consisting of only real numbers.
@@ -181,7 +181,7 @@ class _Tensor(ABC):
         **Tensor's shape.**
 
         Returns:
-            tuple | None: Tensor's shape.
+            tuple[int, ...] | None: Tensor's shape.
 
         Raises:
             UserWarning: The function is used on a deleted Tensor.
@@ -198,7 +198,7 @@ class _Tensor(ABC):
         **Tensor's tags.**""
 
         Returns:
-            list: Tensor's tags.
+            list[str]: Tensor's tags.
 
         Raises:
             UserWarning: The function is used on a deleted Tensor.
@@ -219,7 +219,7 @@ class _Tensor(ABC):
         **Tensor's internal tracker.**
 
         Returns:
-            dict | None: Dictionary of a Tensor's tracker and ID.
+            dict[str, Tensor | list | str | None] | None: Dictionary of a Tensor's tracker and ID.
 
         Raises:
             UserWarning: The function is used on a deleted Tensor.
@@ -247,7 +247,7 @@ class _Tensor(ABC):
         **Tensor's full internals.**
 
         Returns:
-            dict | None: Dictionary of a Tensor's full internals.
+            dict[str, Tensor | list | str | None] | None: Dictionary of a Tensor's full internals.
 
         Raises:
             UserWarning: The function is used on a deleted Tensor.
@@ -337,7 +337,7 @@ class _Tensor(ABC):
         **Tensor subclass's cache.**
 
         Returns:
-            list: All Tensor instances referenced by ID.
+            list[str | None]: All Tensor instances referenced by ID.
         """
         # subclass caches
         return [itm.id if itm is not None else None for itm in cls._cache]
@@ -350,7 +350,7 @@ class _Tensor(ABC):
         A full cache of the subclass's cache with each item displaying its full internals.
 
         Returns:
-            list: All Tensor instances with full internals.
+            list[dict[str, Tensor | list | str | None] | None]: All Tensor instances with full internals.
         """
         # subclass internal caches
         return [itm.internals if itm is not None else None for itm in cls._cache]
@@ -416,7 +416,7 @@ class _Tensor(ABC):
         **Turns off warning messages ("I know what I am doing" - ikwiad).**
 
         Parameters:
-            ikwiad (bool): ikwiad state.
+            ikwiad (bool | None): ikwiad state.
                 If no state is given, ikwiad will switch states.
         """
         if ikwiad is None:
@@ -653,7 +653,7 @@ class Matrix(_Tensor):
         **Resets Matrix trackers.**
 
         Parameters:
-            *args (Matrix | str | None): Matrices to retain trackers.
+            *args (Matrix | str): Matrices to retain trackers.
 
         Note:
             If 'track retain' is in a Matrix's tags, the Matrix will keep its track.

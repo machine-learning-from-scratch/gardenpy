@@ -46,7 +46,7 @@ def progress(idx: int, max_idx: int, *, desc: str | None = None, b_len: int = 50
     r"""
     **Customizable progress bar.**
 
-    Args:
+    Parameters:
         idx (int), 0 < idx: Current loop index.
         max_idx (int), 0 < max_idx: Maximum loop index.
         desc (str | None), default = None: Progress bar description.
@@ -54,8 +54,9 @@ def progress(idx: int, max_idx: int, *, desc: str | None = None, b_len: int = 50
         b_type (int), default = 0: Visual bar type.
 
     Raises:
-        TypeError: If parameters are of the wrong type.
+        TypeError: Incorrect parameter types.
     """
+    # todo: errors
     # check for errors
     if not (isinstance(idx, int) and -1 <= idx):
         raise TypeError("Referenced loop index must be a positive integer.")
@@ -111,7 +112,7 @@ def convert_time(seconds: float | int) -> str:
         str: Time in hours:minutes:seconds format.
 
     Raises:
-        TypeError: If parameters are of the wrong type.
+        TypeError: Incorrect parameter types.
     """
     # check for errors
     if not (isinstance(seconds, (float, int)) and 0 <= seconds):
@@ -147,7 +148,7 @@ def slow_print(text: str, *, delay: float | int = 0.05) -> None:
     return None
 
 
-def print_contributors(*, who: list[str] | None = None, cinematic: bool = False) -> None:
+def print_contributors(*, who: list[str] | None = None) -> None:
     r"""
     **Prints GardenPy contributors in alphabetical order.**
 
@@ -157,13 +158,12 @@ def print_contributors(*, who: list[str] | None = None, cinematic: bool = False)
     At the same time, this function misses many vital contributors responsible for aiding us in the creation of our
     project, and we wish to thank anyone who helped us in any way.
 
-    Args:
-        who (list | None), default = all: Type of contributors to print.
-        cinematic (bool), default = False: Cinematic-style printing of contributors.
+    Parameters:
+        who: default = all: Type of contributors to print.
 
     Raises:
-        TypeError: If parameters are of the wrong type.
-        ValueError: If invalid contributors were requested.
+        TypeError: Incorrect parameter types.
+        ValueError: Invalid contributor type names.
     """
     # contributors
     contributors = {
@@ -189,7 +189,6 @@ def print_contributors(*, who: list[str] | None = None, cinematic: bool = False)
     contributor_types = ['programmers', 'artists', 'thanks']
     if isinstance(who, list):
         who = list(set(who))
-    cinematic = bool(cinematic)
     if not (isinstance(who, list) or who is None):
         raise TypeError("'who' must be a list")
     if who is not None and not all([(pers in contributor_types) for pers in who]):
@@ -200,80 +199,23 @@ def print_contributors(*, who: list[str] | None = None, cinematic: bool = False)
     who = who or contributor_types
 
     # print contributors
-    if cinematic:
-        print(f"{ansi['reset']}", end='')
-        slow_print("The [", delay=0.05)
-        print(f"{ansi['bold']}", end='')
-        slow_print("MACHINE LEARNING ", delay=0.05)
-        print(f"{ansi['reset']}{ansi['white']}{ansi['italic']}", end='')
-        slow_print("from scratch", delay=0.05)
-        print(f"{ansi['reset']}", end='')
-        slow_print("] team presents", delay=0.05)
-        print(f"{ansi['reset']}")
-        time.sleep(0.5)
-        print(f"{ansi['bold']}{ansi['green']}", end='')
-        slow_print("GardenPy", delay=0.25)
-        print(f"{ansi['reset']}", end='\n')
-        if 'programmers' in who:
-            time.sleep(0.5)
-            print(f"{ansi['bold']}", end='')
-            slow_print("Programmers", delay=0.05)
-            print(f"{ansi['reset']}", end='\n')
-            for row in contributors['programmers']:
-                time.sleep(0.5)
-                slow_print(
-                    "    {reset}{:<30} {white}{:<25} {reset}{bright_black}{:<20}"
-                    .format(row[0], row[1], row[2], **ansi), delay=0.05
-                )
-                print(f"{ansi['reset']}", end='\n')
-        if 'artists' in who:
-            time.sleep(0.5)
-            print(f"{ansi['bold']}", end='')
-            slow_print("Artists", delay=0.05)
-            print(f"{ansi['reset']}", end='\n')
-            for row in contributors['artists']:
-                time.sleep(0.5)
-                slow_print(
-                    "    {reset}{:<30} {white}{:<25} {reset}{bright_black}{:<20}"
-                    .format(row[0], row[1], row[2], **ansi), delay=0.05
-                )
-                print(f"{ansi['reset']}", end='\n')
-        if 'thanks' in who:
-            time.sleep(0.5)
-            print(f"{ansi['bold']}", end='')
-            slow_print("Special Thanks To", delay=0.05)
-            print(f"{ansi['reset']}", end='')
-            for row in contributors['thanks']:
-                time.sleep(0.5)
-                print("\n    ", end='')
-                print(f"{ansi['reset']}", end='')
-                slow_print(f"{row[0]} ", delay=0.05)
-                print(f"{ansi['white']}", end='')
-                slow_print(f"from {row[1]}", delay=0.05)
-            print(f"{ansi['reset']}", end='\n')
-            time.sleep(0.5)
-        print(f"{ansi['white']}", end='')
-        slow_print("Thanks to everyone who supported this project in any way", delay=0.05)
-        print(f"{ansi['reset']}", end='\n')
-        time.sleep(0.5)
-    else:
-        print(f"{ansi['bold']}{ansi['green']}GardenPy{ansi['reset']}")
-        if 'programmers' in who:
-            print(f"{ansi['bold']}Programmers{ansi['reset']}", end='\n')
-            for row in contributors['programmers']:
-                print(
-                    "    {reset}{:<30} {white}{:<25}{reset} {bright_black}{:<20}{reset}"
-                    .format(row[0], row[1], row[2], **ansi)
-                )
-        if 'artists' in who:
-            print(f"{ansi['bold']}Artists{ansi['reset']}", end='\n')
-            for row in contributors['artists']:
-                print(
-                    "    {reset}{:<30} {white}{:<25}{reset} {bright_black}{:<20}{reset}"
-                    .format(row[0], row[1], row[2], **ansi)
-                )
-        if 'thanks' in who:
-            print(f"{ansi['bold']}Special Thanks To{ansi['reset']}", end='\n')
-            for row in contributors['thanks']:
-                print(f"    {ansi['reset']}{row[0]} {ansi['white']}from {row[1]}{ansi['reset']}")
+    print(f"{ansi['bold']}{ansi['green']}GardenPy{ansi['reset']}")
+    if 'programmers' in who:
+        print(f"{ansi['bold']}Programmers{ansi['reset']}", end='\n')
+        for row in contributors['programmers']:
+            print(
+                "    {reset}{:<30} {white}{:<25}{reset} {bright_black}{:<20}{reset}"
+                .format(row[0], row[1], row[2], **ansi)
+            )
+    if 'artists' in who:
+        print(f"{ansi['bold']}Artists{ansi['reset']}", end='\n')
+        for row in contributors['artists']:
+            print(
+                "    {reset}{:<30} {white}{:<25}{reset} {bright_black}{:<20}{reset}"
+                .format(row[0], row[1], row[2], **ansi)
+            )
+    if 'thanks' in who:
+        print(f"{ansi['bold']}Special Thanks To{ansi['reset']}", end='\n')
+        for row in contributors['thanks']:
+            print(f"    {ansi['reset']}{row[0]} {ansi['white']}from {row[1]}{ansi['reset']}")
     return None

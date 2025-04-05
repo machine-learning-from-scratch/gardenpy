@@ -18,7 +18,7 @@ class TrackingError(Exception):
         r"""
         **Error references.**
 
-        Args:
+        Parameters:
             grad (Tensor): First Tensor relating to the tracking error.
             wrt (Tensor): Second Tensor relating to the tracking error.
             message (str, optional): The error message.
@@ -29,11 +29,6 @@ class TrackingError(Exception):
         # error message
         if message is None:
             message = (
-                f"No relation could be found between\n{grad}\nand\n{wrt}\n"
-                "This might be due to:\n"
-                "   No clear relation between the Tensors.\n"
-                "   Accidental clearing of trackers.\n"
-                "   Deletion of Tensors.\n"
-                "   Accidental reference to the wrong Tensor."
+                f"No relation could be found between {grad} and {wrt}"
             )
         super().__init__(str(message))

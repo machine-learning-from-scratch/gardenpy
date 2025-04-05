@@ -7,6 +7,7 @@ Contains:
 """
 # todo: check logic (might need deepcopy?)
 
+from copy import deepcopy
 from types import LambdaType
 from warnings import warn
 

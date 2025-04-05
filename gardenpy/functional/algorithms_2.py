@@ -58,7 +58,7 @@ class _Algorithm(ABC):
         # set checker
         checker = ParamChecker(
             prefix=f'{method} hyperparameters',
-            parameters=default_hyperparams[method],
+            parameters=cls._default_hyperparams[method],
             ikwiad=_Algorithm._ikwiad
         )
 
