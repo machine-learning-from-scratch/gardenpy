@@ -395,11 +395,8 @@ class _Tensor(ABC):
             To delete this Tensor, either reset it using :func:`_Tensor.instance_reset` or remove 'retain'.
         """
         # saved tensors
-        args = list(args)
-        arg_ids = []
-        for arg in args:
-            _, arg_id = cls._reference_tensor(itm=arg)
-            arg_ids.append(arg_id)
+        arg_ids = [cls._reference_tensor(itm=arg)[1] for arg in args]
+
         # removed tensors
         removed_tensors = [
             itm for i, itm in enumerate(cls._cache)
@@ -660,15 +657,12 @@ class Matrix(_Tensor):
             To delete this track, either reset it using :func:`Matrix.instance_trac_reset` or remove 'track retain'.
         """
         # saved matrices
-        args = list(args)
-        for i, arg in enumerate(args):
-            _, arg_id = cls._reference_tensor(arg)
-            args[i] = arg_id
+        arg_ids = [cls._reference_tensor(itm=arg)[1] for arg in args]
 
         # track removed matrices
         untracked_matrices = [
             itm for i, itm in enumerate(cls._cache)
-            if i not in args and itm is not None and 'track retain' not in itm._tags
+            if i not in arg_ids and itm is not None and 'track retain' not in itm._tags
         ]
         for matrix in untracked_matrices:
             # track reset track removed matrices
@@ -1421,7 +1415,7 @@ class Matrix(_Tensor):
     _sub = _Sub()
 
     # NB: Dunder methods might not allow the first object to be a non-Matrix object.
-    # They are attempted with __r__ dunder methods.
+    # __r__ dunder methods will still attempt dunder calls.
     # However, this might not work.
     # Therefore, internal raw methods allow calls with the first object being a non-Matrix object.
 
@@ -1461,45 +1455,45 @@ class Matrix(_Tensor):
         r"""**Matrix multiplication.**"""
         return self._matmul.main(main=self, other=other)
 
-    def __rmatmul__(self, other: Matrix | NDArray) -> Matrix:
-        r"""**Other matrix multiplication.**"""
-        return self._matmul.main(main=other, other=self)
-
     def __pow__(self, other: Matrix | NDArray | float) -> Matrix:
         r"""**Hadamard power.**"""
         return self._pow.main(main=self, other=other)
-
-    def __rpow__(self, other: Matrix | NDArray | float) -> Matrix:
-        r"""**Other Hadamard power.**"""
-        return self._pow.main(main=other, other=self)
 
     def __mul__(self, other: Matrix | NDArray | float) -> Matrix:
         r"""**Hadamard multiplication.**"""
         return self._mul.main(main=self, other=other)
 
-    def __rmul__(self, other: Matrix | NDArray | float) -> Matrix:
-        r"""**Other Hadamard multiplication.**"""
-        return self._mul.main(main=other, other=self)
-
     def __truediv__(self, other: Matrix | NDArray | float) -> Matrix:
         r"""**Hadamard division.**"""
         return self._truediv.main(main=self, other=other)
-
-    def __rtruediv__(self, other: Matrix | NDArray | float) -> Matrix:
-        r"""**Other Hadamard division.**"""
-        return self._truediv.main(main=other, other=self)
 
     def __add__(self, other: Matrix | NDArray | float) -> Matrix:
         r"""**Addition.**"""
         return self._add.main(main=self, other=other)
 
-    def __radd__(self, other: Matrix | NDArray | float) -> Matrix:
-        r"""**Other addition.**"""
-        return self._add.main(main=other, other=self)
-
     def __sub__(self, other: Matrix | NDArray | float) -> Matrix:
         r"""**Subtraction.**"""
         return self._sub.main(main=self, other=other)
+
+    def __rmatmul__(self, other: Matrix | NDArray) -> Matrix:
+        r"""**Other matrix multiplication.**"""
+        return self._matmul.main(main=other, other=self)
+
+    def __rpow__(self, other: Matrix | NDArray | float) -> Matrix:
+        r"""**Other Hadamard power.**"""
+        return self._pow.main(main=other, other=self)
+
+    def __rmul__(self, other: Matrix | NDArray | float) -> Matrix:
+        r"""**Other Hadamard multiplication.**"""
+        return self._mul.main(main=other, other=self)
+
+    def __rtruediv__(self, other: Matrix | NDArray | float) -> Matrix:
+        r"""**Other Hadamard division.**"""
+        return self._truediv.main(main=other, other=self)
+
+    def __radd__(self, other: Matrix | NDArray | float) -> Matrix:
+        r"""**Other addition.**"""
+        return self._add.main(main=other, other=self)
 
     def __rsub__(self, other: Matrix | NDArray | float) -> Matrix:
         r"""**Other subtraction.**"""
