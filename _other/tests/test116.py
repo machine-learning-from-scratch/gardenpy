@@ -34,16 +34,16 @@ def add_tags(items: list[gp.Matrix | gp.Gradient], tags: list[str | list[str]]) 
 epochs = 1_000
 
 # parameters
-w1 = gp.Initializers('xavier')(2, 4)
-b1 = gp.Initializers('uniform', kappa=0.0)(1, 4)
-w2 = gp.Initializers('xavier')(4, 2)
-b2 = gp.Initializers('uniform', kappa=0.0)(1, 2)
+w1 = gp.Initializer('xavier')(2, 4)
+b1 = gp.Initializer('uniform', kappa=0.0)(1, 4)
+w2 = gp.Initializer('xavier')(4, 2)
+b2 = gp.Initializer('uniform', kappa=0.0)(1, 2)
 # internal tags
 add_tags(items=[w1, b1, w2, b2], tags=[['w1', 'retain'], ['b1', 'retain'], ['w2', 'retain'], ['b2', 'retain']])
 # hyperparameters
-g = gp.Activators('lrelu', beta=0.1)
-criterion = gp.Losses('ssr')
-optim = gp.Optimizers('rmsp', alpha=1e-03)
+g = gp.Activator('lrelu', beta=0.1)
+criterion = gp.Criterion('ssr')
+optim = gp.Optimizer('adam', alpha=1e-03)
 
 # data
 data = [[[0, 0]], [[0, 1]], [[1, 0]], [[1, 1]]]
