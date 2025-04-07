@@ -63,7 +63,7 @@ class _Tensor(ABC):
             AssertionError: Invalid _ndim argument.
 
         Note:
-            All objects will undergo NumPy array conversion.
+            All objects will undergo NDArray conversion.
         """
         # verify object
         assert isinstance(_ndim, int) and 0 < _ndim, "_ndim must be a positive integer."
@@ -120,10 +120,10 @@ class _Tensor(ABC):
     @property
     def tensor(self) -> NDArray | None:
         r"""
-        **Tensor's internal NumPy array.**
+        **Tensor's internal NDArray.**
 
         Returns:
-            NDArray | None: Tensor's internal NumPy array.
+            NDArray | None: Tensor's internal NDArray.
                 Returns None if the function is used on a deleted Tensor.
 
         Raises:
@@ -137,10 +137,10 @@ class _Tensor(ABC):
     @tensor.setter
     def tensor(self, obj: any) -> None:
         r"""
-        **Alteration of a Tensor's internal NumPy array.**
+        **Alteration of a Tensor's internal NDArray.**
 
         Parameters:
-            obj (any): New internal NumPy array. Instantiation logic follows __init__ logic.
+            obj (any): New internal NDArray. Instantiation logic follows __init__ logic.
 
         Raises:
             TypeError: Object wasn't an _ndim-dimensional array consisting of only real numbers.
@@ -153,7 +153,7 @@ class _Tensor(ABC):
             Changes in tensor shape can result in strange and hard to trace errors with gradient calculation.
 
         Note:
-            All objects will undergo NumPy array conversion.
+            All objects will undergo NDArray conversion.
         """
         self._is_valid_tensor(itm=self)
         # verify object
@@ -577,7 +577,7 @@ class Matrix(_Tensor):
             TypeError: Object wasn't a two-dimensional array consisting of only real numbers.
 
         Note:
-            All objects will undergo NumPy array conversion.
+            All objects will undergo NDArray conversion.
         """
         super().__init__(obj=obj, _ndim=2)
         # matrix subclass internals
@@ -697,11 +697,11 @@ class Matrix(_Tensor):
             if force_arr and not (isinstance(obj, np.ndarray) and obj.ndim == ndim):
                 # ndim mismatch
                 raise ValueError(
-                    f"Failed initialization: Passed object was either not a NumPy array"
+                    f"Failed initialization: Passed object was either not a NDArray"
                     f" or didn't have ndim dimensions. "
                     f"Received object of type {type(obj)} with dimensions "
                     f"{'NULL' if not isinstance(obj, np.ndarray) else obj.ndim}. "
-                    f"Expected a NumPy array with ndim {ndim}."
+                    f"Expected a NDArray with ndim {ndim}."
                 )
             return None
 
@@ -713,7 +713,7 @@ class Matrix(_Tensor):
             elif obj_1.shape != obj_2.shape:
                 # shape mismatch
                 raise ValueError(
-                    f"Failed matching: Passed objects were either not both NumPy arrays or didn't match shapes. "
+                    f"Failed matching: Passed objects were either not both NDArrays or didn't match shapes. "
                     f"Received objects of type {type(obj_1)} and {type(obj_2)} respectively. "
                     f"Object 1 had dimensions {'NULL' if not isinstance(obj_1, np.ndarray) else obj_1.ndim}. "
                     f"Object 2 had dimensions {'NULL' if not isinstance(obj_2, np.ndarray) else obj_2.ndim}. "
@@ -759,7 +759,7 @@ class Matrix(_Tensor):
 
         @staticmethod
         def _elementwise_broadcast(two_grad: NDArray) -> NDArray:
-            assert isinstance(two_grad, np.ndarray) and two_grad.ndim == 2, "two_grad must be a 2D NumPy array."
+            assert isinstance(two_grad, np.ndarray) and two_grad.ndim == 2, "two_grad must be a 2D NDArray."
             # 4D identity creation
             eye = np.zeros((*two_grad.shape, *two_grad.shape))
             np.einsum('ijij -> ij', eye, optimize=False)[:] = 1.0
@@ -768,7 +768,7 @@ class Matrix(_Tensor):
 
         @staticmethod
         def _scalar_broadcast(two_grad: NDArray) -> NDArray:
-            assert isinstance(two_grad, np.ndarray) and two_grad.ndim == 2, "two_grad must be a 2D NumPy array."
+            assert isinstance(two_grad, np.ndarray) and two_grad.ndim == 2, "two_grad must be a 2D NDArray."
             # extend to 4D
             return two_grad[np.newaxis, np.newaxis, :, :]
 
@@ -874,7 +874,7 @@ class Matrix(_Tensor):
                 main_val = main
             else:
                 raise TypeError(
-                    f"Invalid type: Main object expected valid type Matrix, NumPy array, or number. "
+                    f"Invalid type: Main object expected valid type Matrix, NDArray, or number. "
                     f"This method can be run with the Gradient if func:`reduce_grad` is used to convert "
                     f"the Gradient into a Matrix. "
                     f"Received type {type(main)}."
@@ -887,7 +887,7 @@ class Matrix(_Tensor):
                 other_val = other
             else:
                 raise TypeError(
-                    f"Invalid type: Other object expected valid type Matrix, NumPy array, or number. "
+                    f"Invalid type: Other object expected valid type Matrix, NDArray, or number. "
                     f"This method can be run with the Gradient if func:`reduce_grad` is used to convert "
                     f"the Gradient into a Matrix. "
                     f"Received type {type(other)}."
@@ -962,7 +962,7 @@ class Matrix(_Tensor):
                 main_val = main
             else:
                 raise TypeError(
-                    f"Invalid type: Main object expected valid type Matrix, or NumPy array. "
+                    f"Invalid type: Main object expected valid type Matrix, or NDArray. "
                     f"This method can be run with the Gradient if func:`reduce_grad` is used to convert "
                     f"the Gradient into a Matrix. "
                     f"Received type {type(main)}."
@@ -1546,7 +1546,7 @@ class Gradient(_Tensor):
             AssertionError: Override wasn't given.
 
         Note:
-            All objects will undergo NumPy array conversion.
+            All objects will undergo NDArray conversion.
         """
         assert _override, "Raw Gradient creation isn't recommended; to create a Gradient object, signal override."
         super().__init__(obj=obj, _ndim=4)

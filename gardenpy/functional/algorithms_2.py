@@ -4,10 +4,10 @@ r"""
 Core machine learning algorithms for the GardenPy library.
 
 Contains:
-    - :class:`Initializers`
-    - :class:`Activators`
-    - :class:`Losses`
-    - :class:`Optimizers`
+    - :class:`Initializer`
+    - :class:`Activator`
+    - :class:`Criterion`
+    - :class:`Optimizer`
 """
 
 from abc import ABC, abstractmethod
@@ -16,9 +16,13 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .objects import Matrix, Gradient
+from .raw_operators import inf_remove
 from ..utils.checkers import Params, ParamChecker
 
 
+# NB: All algorithms within this file should inherit from this abstract class.
+# Although this class doesn't always contain all the necessary components, it contains a large majority of them.
+# For any new subclasses or methods from _Algorithm, follow the correct structuring taken from the existing code.
 class _Algorithm(ABC):
     r"""
     **GardenPy's base algorithm class.**
@@ -34,7 +38,15 @@ class _Algorithm(ABC):
     _methods: list[str] = []
     _hyperparameters: dict[str, Params] | None = None
 
-    def __init__(self, method: str, *, hyperparameters: dict[str, any], **kwargs: any):
+    def __init__(self, method: str, *, hyperparameters: dict[str, any] | None, **kwargs: any):
+        r"""
+        **Default _Algorithm setup.**
+
+        Parameters:
+            method (str): Method name.
+            hyperparameters (dict[str, any] | None): Method hyperparameters.
+            **kwargs (any): Optional Key-word method hyperparameters.
+        """
         # internal setup
         self._method: str | None = None
         self._hyperparams: dict[str, any] | None = None
@@ -45,7 +57,32 @@ class _Algorithm(ABC):
 
     @classmethod
     def methods(cls) -> list[str]:
+        r"""
+        **Implemented methods.**
+
+        Returns:
+            list[str]: Implemented methods.
+        """
         return cls._methods.copy()
+
+    @classmethod
+    def ikwiad(cls, ikwiad: bool | None = None) -> None:
+        r"""
+        **Turns off warning messages ("I know what I am doing" - ikwiad).**
+
+        Used for all _Algorithm subclasses.
+
+        Parameters:
+            ikwiad (bool): ikwiad state.
+                If no state is given, ikwiad will switch states.
+        """
+        if ikwiad is None:
+            # switch ikwiad
+            _Algorithm._ikwiad = not _Algorithm._ikwiad
+            return None
+        # set ikwiad
+        _Algorithm._ikwiad = bool(ikwiad)
+        return None
 
     @classmethod
     def _get_method(cls, method: str, hyperparameters: dict[str, any], **kwargs):
@@ -70,25 +107,6 @@ class _Algorithm(ABC):
     def _set_method(self):
         pass
 
-    @classmethod
-    def ikwiad(cls, ikwiad: bool | None = None) -> None:
-        r"""
-        **Turns off warning messages ("I know what I am doing" - ikwiad).**
-
-        Used for all _Algorithm subclasses.
-
-        Parameters:
-            ikwiad (bool): ikwiad state.
-                If no state is given, ikwiad will switch states.
-        """
-        if ikwiad is None:
-            # switch ikwiad
-            _Algorithm._ikwiad = not _Algorithm._ikwiad
-            return None
-        # set ikwiad
-        _Algorithm._ikwiad = bool(ikwiad)
-        return None
-
     @abstractmethod
     def __call__(self, *args: any, **kwargs: any):
         pass
@@ -98,6 +116,15 @@ class _Algorithm(ABC):
 
 
 class Initializer(_Algorithm):
+    r"""
+    **Initialization algorithms.**
+
+    Supports:
+        - Kaiming/He Initialization
+        - Xavier/Glorot Initialization
+        - Gaussian Initialization
+        - Uniform Initialization
+    """
     # internals
     _methods: list[str] = [
         'kaiming',
@@ -107,7 +134,7 @@ class Initializer(_Algorithm):
     ]
     _hyperparameters: dict[str, Params] = {
             'kaiming': Params(
-                default={'beta': 0.0, 'mu': 0.0, 'sigma': 1.0, 'kappa': 1.0},
+                default={'beta': 1e-02, 'mu': 0.0, 'sigma': 1.0, 'kappa': 1.0},
                 dtypes={'beta': float, 'mu': float, 'sigma': float, 'kappa': float},
                 vtypes={
                     'beta': lambda x: 0 <= x,
@@ -142,7 +169,37 @@ class Initializer(_Algorithm):
             )
         }
 
-    def __init__(self, method: str, *, hyperparameters: dict[str, any], **kwargs: any):
+    def __init__(self, method: str, *, hyperparameters: dict[str, any] | None, **kwargs: any):
+        r"""
+        **Initialization method and hyperparameter setup.**
+
+        Any hyperparameters that remain unfilled are set to their default value.
+
+        kaiming (Kaiming/He)
+            - beta (float), default = 1e-02, 0.0 <= beta: Leaky ReLU slope.
+            - mu (float), default = 0.0: Distribution mean.
+            - sigma (float), default = 1.0, 0.0 < sigma: Distribution standard deviation.
+            - kappa (float), default = 1.0: Distribution gain.
+        xavier (Xavier/Glorot)
+            - mu (float), default = 0.0: Distribution mean.
+            - sigma (float), default = 1.0, 0.0 < sigma: Distribution standard deviation.
+            - kappa (float), default = 1.0: Distribution gain.
+        gaussian (Gaussian/Normal)
+            - mu (float), default = 0.0: Distribution mean.
+            - sigma (float), default = 1.0, 0.0 < sigma: Distribution standard deviation.
+            - kappa (float), default = 1.0: Distribution gain.
+        uniform (Uniform)
+            - kappa (float), default = 1.0: Uniform value.
+
+        Parameters:
+            method (str): Method name.
+            hyperparameters (dict[str, any] | None): Method hyperparameters.
+            **kwargs (any): Optional Key-word method hyperparameters.
+
+        Raises:
+            TypeError: Invalid hyperparameter types.
+            ValueError: Invalid hyperparameter values.
+        """
         super().__init__(method=method, hyperparameters=hyperparameters, **kwargs)
 
     def _set_method(self):
@@ -205,6 +262,18 @@ class Initializer(_Algorithm):
         self._algorithm = algs[self._method]
 
     def __call__(self, *args: int) -> Matrix:
+        r"""
+        **Initializes a Matrix with the given initialization algorithm.**
+
+        Parameters:
+            *args (int): Matrix dimensions.
+
+        Returns:
+            Matrix: Initialized Matrix.
+
+        Raises:
+            ValueError: Invalid dimension types.
+        """
         return self._algorithm(*args)
 
 
@@ -212,6 +281,22 @@ class Initializer(_Algorithm):
 
 
 class Activator(_Algorithm):
+    r"""
+    **Activation algorithms**
+
+    Supports:
+        - Softmax
+        - Rectified Linear Unit (ReLU)
+        - Leaky Rectified Linear Unit (Leaky ReLU)
+        - Sigmoid
+        - Tanh
+        - Softplus
+        - Mish
+
+    Note:
+        Utilizes Matrix automatic differentiation algorithms.
+        Adding an algorithm should follow the same structure as other algorithms.
+    """
     # internals
     _methods: list[str] = [
         'softmax',
@@ -246,7 +331,36 @@ class Activator(_Algorithm):
             )
         }
 
-    def __init__(self, method: str, *, hyperparameters: dict[str, any], **kwargs: any):
+    def __init__(self, method: str, *, hyperparameters: dict[str, any] | None, **kwargs: any):
+        r"""
+        **Activation method and hyperparameter setup.**
+
+        Any hyperparameters that remain unfilled are set to their default value.
+
+        softmax (Softmax)
+            - None
+        relu (Rectified Linear Unit / ReLU)
+            - None
+        lrelu (Leaky Rectified Linear Unit / Leaky ReLU)
+            - beta (float), default = 1e-2, 0.0 < beta: Negative slope.
+        sigmoid (Sigmoid)
+            - None
+        tanh (Tanh)
+            - None
+        softplus (Softplus)
+            - beta (float), default = 1.0, 0.0 <= beta: Vertical stretch.
+        mish (Mish)
+            - beta (float), default = 1.0, 0.0 <= beta: Vertical stretch.
+
+        Parameters:
+            method (str): Method name.
+            hyperparameters (dict[str, any] | None): Method hyperparameters.
+            **kwargs (any): Optional Key-word method hyperparameters.
+
+        Raises:
+            TypeError: Invalid hyperparameter types.
+            ValueError: Invalid hyperparameter values.
+        """
         super().__init__(method=method, hyperparameters=hyperparameters, **kwargs)
 
     def _set_method(self):
@@ -261,6 +375,7 @@ class Activator(_Algorithm):
 
             @staticmethod
             def backward(x: NDArray) -> NDArray:
+                # todo: finish this algorithm (lower priority)
                 raise NotImplementedError("Currently mathematically deriving.")
 
         class _ReLU(Matrix.LoneElementWiseMethod):
@@ -341,9 +456,44 @@ class Activator(_Algorithm):
         self._algorithm = algs[self._method]
 
     def __call__(self, x: Matrix | NDArray) -> Matrix | NDArray:
+        r"""
+        **Main method call.**
+
+        Parameters:
+            x (Matrix | NDArray): Main array.
+
+        Returns:
+            Matrix | NDArray: Activated array.
+
+        Raises:
+            TypeError: Invalid main array type.
+
+        Note:
+            Utilizes Matrix automatic differentiation algorithms if the argument is a Matrix.
+            These can be used with NDArrays, but won't utilize automatic differentiation.
+        """
         return self._algorithm.main(x)
 
     def derivative(self, x: NDArray) -> NDArray:
+        r"""
+        **Derivative method call.**
+
+        Parameters:
+            x (NDArray): Main array.
+
+        Returns:
+            NDArray: Main derivative.
+
+        Raises:
+            TypeError: Invalid main object.
+
+        Note:
+            Matrices automatically use the derivative algorithm during nabla calls.
+            Raw derivative algorithm calls should only be done with NDArrays.
+            Furthermore, raw derivative algorithm calls are highly unstable.
+            This is as they don't undergo any checks and return an array with non-consistent dimensions.
+            It's recommended to not use this function call if possible.
+        """
         if not _Algorithm._ikwiad:
             warn(
                 "This library stores gradients fourth-dimensionally. "
@@ -366,6 +516,18 @@ class Activator(_Algorithm):
 
 
 class Criterion(_Algorithm):
+    r"""
+    **Criterion algorithms**
+
+    Supports:
+        - Cross Entropy
+        - Sum of the Squared Residuals
+        - Sum of the Absolute Value Residuals
+
+    Note:
+        Utilizes Matrix automatic differentiation algorithms.
+        Adding an algorithm should follow the same structure as other algorithms.
+    """
     # internals
     _methods: list[str] = [
         'centropy',
@@ -373,32 +535,52 @@ class Criterion(_Algorithm):
         'savr'
     ]
     _hyperparameters: dict[Params] = {
-            'centropy': Params(
-                default={'epsilon': 1e-10},
-                dtypes={'epsilon': float},
-                vtypes={'epsilon': lambda x: 0.0 < x < 1e-02},
-                ctypes={'epsilon': lambda x: x}
-            ),
+            'centropy': Params(default=None, dtypes=None, vtypes=None, ctypes=None),
             'ssr': Params(default=None, dtypes=None, vtypes=None, ctypes=None),
             'savr': Params(default=None, dtypes=None, vtypes=None, ctypes=None),
         }
 
-    def __init__(self, method: str, *, hyperparameters: dict[str, any], **kwargs: any):
+    def __init__(self, method: str, *, hyperparameters: dict[str, any] | None, **kwargs: any):
+        r"""
+        **Criterion method and hyperparameter setup.**
+
+        Any hyperparameters that remain unfilled are set to their default value.
+
+        centropy (Cross Entropy):
+            - None
+        ssr (Sum of the Squared Residuals):
+            - None
+        savr (Sum of the Absolute Value Residuals):
+            - None
+
+        Parameters:
+            method (str): Method name.
+            hyperparameters (dict[str, any] | None): Method hyperparameters.
+            **kwargs (any): Optional Key-word method hyperparameters.
+
+        Raises:
+            TypeError: Invalid hyperparameter types.
+            ValueError: Invalid hyperparameter values.
+        """
         super().__init__(method=method, hyperparameters=hyperparameters, **kwargs)
 
     def _set_method(self):
+        # NB: No hyperparameters are used in any current criterion algorithm.
+        # If there's ever a criterion algorithm that needs hyperparameters, uncomment the line defining h below.
         # hyperparameter reference
-        h = self._hyperparams
+        # h = self._hyperparams
 
         class _CrossEntropy(Matrix.ScalarMethod):
             # centropy
             @staticmethod
+            @inf_remove(inf_val=1e10)
             def forward(yhat: NDArray, y: NDArray) -> NDArray:
-                return np.array([[-np.sum(y * np.log(yhat + h['epsilon']))]])
+                return -np.sum(y * np.log(yhat))[None, None]
 
             @staticmethod
+            @inf_remove(inf_val=1e10)
             def backward(yhat: NDArray, y: NDArray) -> NDArray:
-                return -y / (yhat + h['epsilon'])
+                return -y / yhat
 
             @staticmethod
             def other_backward(yhat: any, y: any):
@@ -411,7 +593,7 @@ class Criterion(_Algorithm):
             # ssr
             @staticmethod
             def forward(yhat: NDArray, y: NDArray) -> NDArray:
-                return np.array([[np.sum((y - yhat) ** 2.0)]])
+                return np.sum((y - yhat) ** 2.0)[None, None]
 
             @staticmethod
             def backward(yhat: NDArray, y: NDArray) -> NDArray:
@@ -428,7 +610,7 @@ class Criterion(_Algorithm):
             # savr
             @staticmethod
             def forward(yhat: NDArray, y: NDArray) -> NDArray:
-                return np.array([[np.sum(np.abs(y - yhat))]])
+                return np.sum(np.abs(y - yhat))[None, None]
 
             @staticmethod
             def backward(yhat: NDArray, y: NDArray) -> NDArray:
@@ -451,9 +633,46 @@ class Criterion(_Algorithm):
         self._algorithm = algs[self._method]
 
     def __call__(self, yhat: Matrix | NDArray, y: Matrix | NDArray) -> Matrix | NDArray:
+        r"""
+        **Main method call.**
+
+        Parameters:
+            yhat (Matrix | NDArray): Predicted output.
+            y (Matrix | NDArray): Expected output.
+
+        Returns:
+            Matrix | NDArray: Loss.
+
+        Raises:
+            TypeError: Invalid yhat or y types.
+
+        Note:
+            Utilizes Matrix automatic differentiation algorithms if the argument is a Matrix.
+            These can be used with NDArrays, but won't utilize automatic differentiation.
+        """
         return self._algorithm.main(yhat, y)
 
     def derivative(self, yhat: NDArray, y: NDArray) -> NDArray:
+        r"""
+        **Derivative method call.**
+
+        Parameters:
+            yhat (NDArray): Predicted output.
+            y (NDArray): Expected output.
+
+        Returns:
+            NDArray: Loss derivative.
+
+        Raises:
+            TypeError: Invalid main object.
+
+        Note:
+            Matrices automatically use the derivative algorithm during nabla calls.
+            Raw derivative algorithm calls should only be done with NDArrays.
+            Furthermore, raw derivative algorithm calls are highly unstable.
+            This is as they don't undergo any checks and return an array with non-consistent dimensions.
+            It's recommended to not use this function call if possible.
+        """
         if not _Algorithm._ikwiad:
             warn(
                 "This library stores gradients fourth-dimensionally. "
@@ -476,6 +695,19 @@ class Criterion(_Algorithm):
 
 
 class Optimizer(_Algorithm):
+    r"""
+    **Optimization algorithms**
+
+    Supports:
+        - Adaptive Moment Estimation (Adam)
+        - Stochastic Gradient Descent (SGD)
+        - Root Mean Squared Propagation (RMSProp)
+        - Adaptive Gradient Algorithm (AdaGrad) (broken)
+
+    Note:
+        Alters a Matrix's tensor rather than creating a new Matrix if correlator is used.
+        This keeps the Matrix's internals the same after running optimization on it.
+    """
     _methods: list[str] = [
         'adam',
         'sgd',
@@ -547,7 +779,53 @@ class Optimizer(_Algorithm):
         )
     }
 
-    def __init__(self, method: str, *, hyperparameters: dict[str, any], correlator: bool = True, **kwargs: any):
+    def __init__(self, method: str, *, hyperparameters: dict[str, any] | None, correlator: bool = True, **kwargs: any):
+        r"""
+        **Optimization method and hyperparameter setup.**
+
+        Any hyperparameters that remain unfilled are set to their default value.
+
+        adam:
+            - alpha (float), default = 1e-03: Learning rate.
+            - lambda_d (float), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
+            - beta_1 (float), default = 0.9, 0 < lambda_d < 1.0: First moment beta.
+            - beta_2 (float), default = 0.999, 0 < lambda_d < 1.0: Second moment beta.
+            - epsilon (float), default = 1e-10, 0 < epsilon <= 1e-02: Numerical stability constant.
+            - ams (bool, int), default = False: Adam AMS variant.
+        sgd:
+            - alpha (float), default = 1e-03: Learning rate.
+            - lambda_d (float), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
+            - mu (float), default = 0.0, 0.0 <= mu < 1.0: Momentum.
+            - tau (float), default = 0.0, 0.0 <= tau < 1.0: Dampening.
+            - nesterov (bool, int), default = False: Nesterov variant.
+        rmsp:
+            - alpha (float), default = 1e-03: Learning rate.
+            - lambda_d (float), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
+            - beta (float), default = 0.99, 0.0 <= beta < 1.0: First moment beta.
+            - mu (float), default = 0.0, 0.0 <= mu < 1.0: Momentum.
+            - epsilon (float), default = 1e-10, 0 < epsilon <= 1e-02: Numerical stability constant.
+
+        Parameters:
+            method (str): Method name.
+            hyperparameters (dict[str, any] | None): Method hyperparameters.
+            correlator: bool, default = True: Memory correlation for Matrices.
+            **kwargs (any): Optional Key-word method hyperparameters.
+
+        Raises:
+            TypeError: Invalid hyperparameter types.
+            ValueError: Invalid hyperparameter values.
+
+        Note:
+            The correlator keeps track of memory for each unique Matrix.
+            It uses a Matrix's ID to reference this memory.
+            These memory instances are automatically created based, using a Matrix's ID for identification.
+            If turned off, a single memory instance will be saved throughout an instance of the class.
+            This memory is important for any optimization algorithm that references previous terms.
+
+        Note:
+            Non-Matrix objects should have correlator off.
+            If the correlator is on and a non-Matrix object is inputted, the algorithm will error.
+        """
         super().__init__(method=method, hyperparameters=hyperparameters, **kwargs)
         self._correlator: bool = bool(correlator)
         self._memories: dict[str, NDArray | float] | None = None
@@ -634,41 +912,57 @@ class Optimizer(_Algorithm):
         # return memory dictionary
         return memories[self._method]
 
-    # todo: ngl this is disgusting and i should fix it
     def __call__(self, theta: Matrix | NDArray, nabla: Gradient | NDArray) -> NDArray | None:
+        r"""
+        **Optimization method call.**
+
+        Parameters:
+            theta (Matrix | NDArray): Initial theta.
+            nabla (Matrix | NDArray): Gradient.
+
+        Returns:
+            NDArray | None: Optimized theta if using NDArrays.
+
+        Raises:
+            TypeError: Invalid nabla object type.
+            ValueError: Invalid correlator handling.
+
+        Note:
+            Matrices retain their internals and automatically create their new memory within the optimizer class.
+            NDArrays are supported, but cannot use the correlator.
+            If the correlator is on and a non-Matrix object is inputted, the algorithm will error.
+        """
+        # nabla handling
         if isinstance(nabla, Gradient):
             # gradient reduction
             nabla = np.sum(nabla.tensor, axis=(0, 1))
         elif not isinstance(nabla, np.ndarray):
             # nabla error
-            raise TypeError("")
+            raise TypeError(
+                f"Failed object: An invalid object was passed for nabla. Nabla must be a Gradient or array. "
+                f"Received nabla type of {type(nabla)}."
+            )
 
         if self._correlator and isinstance(theta, Matrix):
-            # tensor theta and correlator
+            # memory
             if theta.id not in self._memories.keys():
-                # add memory
                 self._memories.update({theta.id: self._get_memories(theta=theta.tensor)})
-            # method
+            # algorithm
             result = self._algorithm(theta=theta.tensor, nabla=nabla, m=self._memories[theta.id])
-            # internals conserving
             theta.tensor = result
-        elif isinstance(theta, Matrix):
-            # tensor theta
-            if self._memories is None:
-                # initialize memory
-                self._memories = self._get_memories(theta=theta.tensor)
-            # method
-            result = self._algorithm(theta=theta.tensor, nabla=nabla, m=self._memories)
-            # internals conserving
-            theta.tensor = result
+            return None
+
         elif not self._correlator and isinstance(theta, np.ndarray):
-            # theta array
             if self._memories is None:
                 # initialize memory
                 self._memories = self._get_memories(theta=theta)
-            # method
+            # algorithm
             return self._algorithm(theta=theta, nabla=nabla, m=self._memories)
-        else:
-            # theta error
-            raise ValueError("")
-        return None
+
+        # theta error
+        raise ValueError(
+            f"Failed optimization call: Failed to optimize given theta with given nabla. "
+            f"This is likely due to improper handling of correlator toggling or invalid theta types. "
+            f"Received theta of type {type(theta)} with correlator set to {self._correlator}. "
+            f"Refer to the __init__ docstring for how to properly handle the correlator."
+        )
