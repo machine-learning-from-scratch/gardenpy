@@ -714,7 +714,7 @@ class Matrix(_Tensor):
                 # shape mismatch
                 raise ValueError(
                     f"Failed matching: Passed objects were either not both NumPy arrays or didn't match shapes. "
-                    f"Received objects {type(obj_1)} and {type(obj_2)} respectively. "
+                    f"Received objects of type {type(obj_1)} and {type(obj_2)} respectively. "
                     f"Object 1 had dimensions {'NULL' if not isinstance(obj_1, np.ndarray) else obj_1.ndim}. "
                     f"Object 2 had dimensions {'NULL' if not isinstance(obj_2, np.ndarray) else obj_2.ndim}. "
                 )
@@ -726,7 +726,7 @@ class Matrix(_Tensor):
                 # not including two numpy arrays
                 raise TypeError(
                     f"Failed objects: One of the two passed objects must be an array. "
-                    f"Received objects {type(obj_1)} and {type(obj_2)} respectively."
+                    f"Received objects of type {type(obj_1)} and {type(obj_2)} respectively."
                 )
             return None
 

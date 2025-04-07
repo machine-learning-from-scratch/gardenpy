@@ -11,7 +11,7 @@ Contains:
 """
 
 from abc import ABC, abstractmethod
-from copy import deepcopy
+from warnings import warn
 import numpy as np
 from numpy.typing import NDArray
 
@@ -98,6 +98,7 @@ class _Algorithm(ABC):
 
 
 class Initializer(_Algorithm):
+    # internals
     _methods: list[str] = [
         'kaiming',
         'xavier',
@@ -106,18 +107,8 @@ class Initializer(_Algorithm):
     ]
     _hyperparameters: dict[str, Params] = {
             'kaiming': Params(
-                default={
-                    'beta': 0.0,
-                    'mu': 0.0,
-                    'sigma': 1.0,
-                    'kappa': 1.0
-                },
-                dtypes={
-                    'beta': float,
-                    'mu': float,
-                    'sigma': float,
-                    'kappa': float
-                },
+                default={'beta': 0.0, 'mu': 0.0, 'sigma': 1.0, 'kappa': 1.0},
+                dtypes={'beta': float, 'mu': float, 'sigma': float, 'kappa': float},
                 vtypes={
                     'beta': lambda x: 0 <= x,
                     'mu': lambda x: True,
@@ -221,6 +212,7 @@ class Initializer(_Algorithm):
 
 
 class Activator(_Algorithm):
+    # internals
     _methods: list[str] = [
         'softmax',
         'relu',
@@ -335,18 +327,348 @@ class Activator(_Algorithm):
                     * (h['beta'] * np.exp(h['beta'] * x) / (h['beta'] * np.exp(h['beta'] * x) + h['beta']))
                 )
 
-            # algorithm reference
-            algs = {
-                'softmax': _Softmax,
-                'relu': _ReLU,
-                'lrelu': _LeakyReLU,
-                'sigmoid': _Sigmoid,
-                'tanh': _Tanh,
-                'softplus': _Softplus,
-                'mish': _Mish
-            }
-            # get algorithm
-            self._algorithm = algs[self._method]
+        # algorithm reference
+        algs = {
+            'softmax': _Softmax,
+            'relu': _ReLU,
+            'lrelu': _LeakyReLU,
+            'sigmoid': _Sigmoid,
+            'tanh': _Tanh,
+            'softplus': _Softplus,
+            'mish': _Mish
+        }
+        # get algorithm
+        self._algorithm = algs[self._method]
 
-        def __call__(self, x):
-            ...
+    def __call__(self, x: Matrix | NDArray) -> Matrix | NDArray:
+        return self._algorithm.main(x)
+
+    def derivative(self, x: NDArray) -> NDArray:
+        if not _Algorithm._ikwiad:
+            warn(
+                "This library stores gradients fourth-dimensionally. "
+                "While most algorithms are first represented two-dimensionally, then extended into the fourth-"
+                "dimension, there's a chance that the algorithm you're referencing only uses the fourth-dimensional "
+                "representation.",
+                UserWarning
+            )
+        if isinstance(x, np.ndarray):
+            # raw backward algorithm
+            return self._algorithm.backward(x)
+        # invalid type
+        raise TypeError(
+            f"Failed object: Object x must be an array. "
+            f"Received object of type {type(x)}."
+        )
+
+
+########################################################################################################################
+
+
+class Criterion(_Algorithm):
+    # internals
+    _methods: list[str] = [
+        'centropy',
+        'ssr',
+        'savr'
+    ]
+    _hyperparameters: dict[Params] = {
+            'centropy': Params(
+                default={'epsilon': 1e-10},
+                dtypes={'epsilon': float},
+                vtypes={'epsilon': lambda x: 0.0 < x < 1e-02},
+                ctypes={'epsilon': lambda x: x}
+            ),
+            'ssr': Params(default=None, dtypes=None, vtypes=None, ctypes=None),
+            'savr': Params(default=None, dtypes=None, vtypes=None, ctypes=None),
+        }
+
+    def __init__(self, method: str, *, hyperparameters: dict[str, any], **kwargs: any):
+        super().__init__(method=method, hyperparameters=hyperparameters, **kwargs)
+
+    def _set_method(self):
+        # hyperparameter reference
+        h = self._hyperparams
+
+        class _CrossEntropy(Matrix.ScalarMethod):
+            # centropy
+            @staticmethod
+            def forward(yhat: NDArray, y: NDArray) -> NDArray:
+                return np.array([[-np.sum(y * np.log(yhat + h['epsilon']))]])
+
+            @staticmethod
+            def backward(yhat: NDArray, y: NDArray) -> NDArray:
+                return -y / (yhat + h['epsilon'])
+
+            @staticmethod
+            def other_backward(yhat: any, y: any):
+                raise NotImplementedError(
+                    "Undefined defined method: "
+                    "Backward method was intentionally left undefined for this algorithm."
+                )
+
+        class _SumOfSquaredResiduals(Matrix.ScalarMethod):
+            # ssr
+            @staticmethod
+            def forward(yhat: NDArray, y: NDArray) -> NDArray:
+                return np.array([[np.sum((y - yhat) ** 2.0)]])
+
+            @staticmethod
+            def backward(yhat: NDArray, y: NDArray) -> NDArray:
+                return -2.0 * (y - yhat)
+
+            @staticmethod
+            def other_backward(yhat: any, y: any):
+                raise NotImplementedError(
+                    "Undefined defined method: "
+                    "Backward method was intentionally left undefined for this algorithm."
+                )
+
+        class _SumOfAbsoluteValueResiduals(Matrix.ScalarMethod):
+            # savr
+            @staticmethod
+            def forward(yhat: NDArray, y: NDArray) -> NDArray:
+                return np.array([[np.sum(np.abs(y - yhat))]])
+
+            @staticmethod
+            def backward(yhat: NDArray, y: NDArray) -> NDArray:
+                return -np.sign(y - yhat)
+
+            @staticmethod
+            def other_backward(yhat: any, y: any):
+                raise NotImplementedError(
+                    "Undefined defined method: "
+                    "Backward method was intentionally left undefined for this algorithm."
+                )
+
+        # algorithm reference
+        algs = {
+            'centropy': _CrossEntropy,
+            'ssr': _SumOfSquaredResiduals,
+            'savr': _SumOfAbsoluteValueResiduals
+        }
+        # get algorithm
+        self._algorithm = algs[self._method]
+
+    def __call__(self, yhat: Matrix | NDArray, y: Matrix | NDArray) -> Matrix | NDArray:
+        return self._algorithm.main(yhat, y)
+
+    def derivative(self, yhat: NDArray, y: NDArray) -> NDArray:
+        if not _Algorithm._ikwiad:
+            warn(
+                "This library stores gradients fourth-dimensionally. "
+                "While most algorithms are first represented two-dimensionally, then extended into the fourth-"
+                "dimension, there's a chance that the algorithm you're referencing only uses the fourth-dimensional "
+                "representation.",
+                UserWarning
+            )
+        if isinstance(yhat, np.ndarray) and isinstance(y, np.ndarray):
+            # raw backward algorithm
+            return self._algorithm.backward(yhat, y)
+        # invalid type
+        raise TypeError(
+            f"Failed objects: Objects yhat and y must be arrays. "
+            f"Received objects of type yhat: {type(yhat)} and y: {type(y)}."
+        )
+
+
+########################################################################################################################
+
+
+class Optimizer(_Algorithm):
+    _methods: list[str] = [
+        'adam',
+        'sgd',
+        'rmsp'
+    ]
+    _hyperparameters: dict[Params] = {
+        'adam': Params(
+            default={'alpha': 1e-03, 'lambda_d': 0.0, 'beta_1': 0.9, 'beta_2': 0.999, 'epsilon': 1e-10, 'ams': False},
+            dtypes={
+                'alpha': float,
+                'lambda_d': float,
+                'beta_1': float,
+                'beta_2': float,
+                'epsilon': float,
+                'ams': (bool, int)
+            },
+            vtypes={
+                'alpha': lambda x: True,
+                'lambda_d': lambda x: 0.0 <= x < 1.0,
+                'beta_1': lambda x: 0.0 < x < 1.0,
+                'beta_2': lambda x: 0.0 < x < 1.0,
+                'epsilon': lambda x: 0.0 < x <= 1e-02,
+                'ams': lambda x: True
+            },
+            ctypes={
+                'alpha': lambda x: float(x),
+                'lambda_d': lambda x: float(x),
+                'beta_1': lambda x: float(x),
+                'beta_2': lambda x: float(x),
+                'epsilon': lambda x: x,
+                'ams': lambda x: bool(x)
+            }
+        ),
+        'sgd': Params(
+            default={'alpha': 1e-03, 'lambda_d': 0.0, 'mu': 0.0, 'tau': 0.0, 'nesterov': False},
+            dtypes={'alpha': float, 'lambda_d': float, 'mu': float, 'tau': float, 'nesterov': (bool, int)},
+            vtypes={
+                'alpha': lambda x: True,
+                'lambda_d': lambda x: 0.0 <= x < 1.0,
+                'mu': lambda x: 0.0 <= x < 1.0,
+                'tau': lambda x: 0.0 <= x < 1.0,
+                'nesterov': lambda x: True
+            },
+            ctypes={
+                'alpha': lambda x: float(x),
+                'lambda_d': lambda x: float(x),
+                'mu': lambda x: float(x),
+                'tau': lambda x: float(x),
+                'nesterov': lambda x: bool(x)
+            }
+        ),
+        'rmsp': Params(
+            default={'alpha': 1e-03, 'lambda_d': 0.0, 'beta': 0.99, 'mu': 0.0, 'epsilon': 1e-10},
+            dtypes={'alpha': float, 'lambda_d': float, 'beta': float, 'mu': float, 'epsilon': float},
+            vtypes={
+                'alpha': lambda x: True,
+                'lambda_d': lambda x: 0.0 <= x < 1.0,
+                'beta': lambda x: 0.0 <= x < 1.0,
+                'mu': lambda x: 0.0 <= x < 1.0,
+                'epsilon': lambda x: 0.0 < x <= 1e-02
+            },
+            ctypes={
+                'alpha': lambda x: float(x),
+                'lambda_d': lambda x: float(x),
+                'beta': lambda x: float(x),
+                'mu': lambda x: float(x),
+                'epsilon': lambda x: float(x)
+            }
+        )
+    }
+
+    def __init__(self, method: str, *, hyperparameters: dict[str, any], correlator: bool = True, **kwargs: any):
+        super().__init__(method=method, hyperparameters=hyperparameters, **kwargs)
+        self._correlator: bool = bool(correlator)
+        self._memories: dict[str, NDArray | float] | None = None
+        if self._correlator:
+            self._memories = {}
+
+    def _set_method(self):
+        # hyperparameter reference
+        h = self._hyperparams
+
+        def adam(theta: NDArray, nabla: NDArray, m: dict) -> NDArray:
+            # adam
+            gamma = nabla + h['lambda_d'] * theta
+
+            psi = h['beta_1'] * m['psi_p'] + (1.0 - h['beta_1']) * gamma
+            omega = h['beta_2'] * m['omega_p'] + (1.0 - h['beta_2']) * gamma ** 2.0
+            m['psi_p'] = psi
+            m['omega_p'] = omega
+
+            psi_hat = psi / (1.0 - h['beta_1'] ** m['iota'])
+            omega_hat = omega / (1.0 - h['beta_2'] ** m['iota'])
+
+            if h['ams']:
+                m['omega_hat_max'] = np.maximum(omega_hat, m['omega_hat_max'])
+                omega_hat = m['omega_hat_max']
+
+            m['iota'] += 1.0
+            return theta - h['alpha'] * psi_hat / (np.sqrt(omega_hat) + h['epsilon'])
+
+        def sgd(theta: NDArray, nabla: NDArray, m: dict) -> NDArray:
+            # sgd
+            gamma = nabla + h['lambda_d'] * theta
+
+            delta = h['mu'] * m['delta_p'] + (1.0 - h['tau']) * gamma
+
+            if h['nesterov']:
+                delta = h['mu'] * delta + gamma
+            m['delta_p'] = delta
+
+            return theta - h['alpha'] * delta
+
+        def rmsp(theta: NDArray, nabla: NDArray, m: dict) -> NDArray:
+            # rmsp
+            gamma = nabla + h['lambda_d'] * theta
+
+            omega = h['beta'] * m['omega_p'] + (1.0 - h['beta']) * gamma ** 2.0
+            m['omega_p'] = omega
+
+            delta = h['mu'] * m['delta_p'] + gamma / (np.sqrt(omega) + h['epsilon'])
+            m['delta_p'] = delta
+
+            return theta - h['alpha'] * delta
+
+        # algorithm reference
+        algs = {
+            'adam': adam,
+            'sgd': sgd,
+            'rmsp': rmsp
+        }
+        # get algorithm
+        self._algorithm = algs[self._method]
+
+    def _get_memories(self, theta: NDArray) -> dict[str, NDArray | float]:
+        # initialize memory dictionary
+        memories = {
+            'adam': {
+                'psi_p': np.zeros(*theta.shape),
+                'omega_p': np.zeros(*theta.shape),
+                'iota': 1.0,
+                'omega_hat_max': np.zeros(*theta.shape)
+            },
+            'sgd': {
+                'delta_p': np.zeros(*theta.shape)
+            },
+            'rmsp': {
+                'delta_p': np.zeros(*theta.shape),
+                'omega_p': np.zeros(*theta.shape)
+            },
+            'adag': {
+                'omega_p': np.zeros(*theta.shape),
+                'iota': 1.0
+            }
+        }
+        # return memory dictionary
+        return memories[self._method]
+
+    # todo: ngl this is disgusting and i should fix it
+    def __call__(self, theta: Matrix | NDArray, nabla: Gradient | NDArray) -> NDArray | None:
+        if isinstance(nabla, Gradient):
+            # gradient reduction
+            nabla = np.sum(nabla.tensor, axis=(0, 1))
+        elif not isinstance(nabla, np.ndarray):
+            # nabla error
+            raise TypeError("")
+
+        if self._correlator and isinstance(theta, Matrix):
+            # tensor theta and correlator
+            if theta.id not in self._memories.keys():
+                # add memory
+                self._memories.update({theta.id: self._get_memories(theta=theta.tensor)})
+            # method
+            result = self._algorithm(theta=theta.tensor, nabla=nabla, m=self._memories[theta.id])
+            # internals conserving
+            theta.tensor = result
+        elif isinstance(theta, Matrix):
+            # tensor theta
+            if self._memories is None:
+                # initialize memory
+                self._memories = self._get_memories(theta=theta.tensor)
+            # method
+            result = self._algorithm(theta=theta.tensor, nabla=nabla, m=self._memories)
+            # internals conserving
+            theta.tensor = result
+        elif not self._correlator and isinstance(theta, np.ndarray):
+            # theta array
+            if self._memories is None:
+                # initialize memory
+                self._memories = self._get_memories(theta=theta)
+            # method
+            return self._algorithm(theta=theta, nabla=nabla, m=self._memories)
+        else:
+            # theta error
+            raise ValueError("")
+        return None
