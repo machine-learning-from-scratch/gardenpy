@@ -412,6 +412,8 @@ class _Tensor(ABC):
         r"""
         **Turns off warning messages ("I know what I am doing" - ikwiad).**
 
+        Used for all _Tensor subclasses.
+
         Parameters:
             ikwiad (bool | None): ikwiad state.
                 If no state is given, ikwiad will switch states.
