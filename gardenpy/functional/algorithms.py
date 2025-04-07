@@ -1,101 +1,163 @@
 r"""
 **GardenPy machine learning algorithms.**
 
+Core machine learning algorithms for the GardenPy library.
+
 Contains:
-    - :class:`Initializers`
-    - :class:`Activators`
-    - :class:`Losses`
-    - :class:`Optimizers`
+    - :class:`Initializer`
+    - :class:`Activator`
+    - :class:`Criterion`
+    - :class:`Optimizer`
 """
 
-from typing import List, Tuple, Optional, Union
+from abc import ABC, abstractmethod
+from warnings import warn
 import numpy as np
 from numpy.typing import NDArray
 
 from .objects import Matrix, Gradient
+from .raw_operators import inf_remove
 from ..utils.checkers import Params, ParamChecker
 
 
-class Initializers:
+# NB: All algorithms within this file should inherit from this abstract class.
+# Although this class doesn't always contain all the necessary components, it contains a large majority of them.
+# For any new subclasses or methods from _Algorithm, follow the correct structuring taken from the existing code.
+class _Algorithm(ABC):
     r"""
-    **Initialization algorithms for weights and biases.**
+    **GardenPy's base algorithm class.**
+
+    Includes base structure for GardenPy's machine learning algorithms.
+    _Algorithm is an abstract base class and should never be instantiated; only subclasses should be instantiated.
+    """
+    # ikwiad
+    _ikwiad: bool = False
+    # rng
+    _rng = np.random.default_rng()
+    # internals
+    _methods: list[str] = []
+    _hyperparameters: dict[str, Params] | None = None
+
+    def __init__(self, method: str, *, hyperparameters: dict[str, any] | None = None, **kwargs: any):
+        r"""
+        **Default _Algorithm setup.**
+
+        Parameters:
+            method (str): Method name.
+            hyperparameters (dict[str, any] | None): Method hyperparameters.
+            **kwargs (any): Optional Key-word method hyperparameters.
+        """
+        # internal setup
+        self._method: str | None = None
+        self._hyperparams: dict[str, any] | None = None
+        self._method, self._hyperparams = self._get_method(method=method, hyperparameters=hyperparameters, **kwargs)
+
+        # set method
+        self._set_method()
+
+    @classmethod
+    def methods(cls) -> list[str]:
+        r"""
+        **Implemented methods.**
+
+        Returns:
+            list[str]: Implemented methods.
+        """
+        return cls._methods.copy()
+
+    @classmethod
+    def ikwiad(cls, ikwiad: bool | None = None) -> None:
+        r"""
+        **Turns off warning messages ("I know what I am doing" - ikwiad).**
+
+        Used for all _Algorithm subclasses.
+
+        Parameters:
+            ikwiad (bool): ikwiad state.
+                If no state is given, ikwiad will switch states.
+        """
+        if ikwiad is None:
+            # switch ikwiad
+            _Algorithm._ikwiad = not _Algorithm._ikwiad
+            return None
+        # set ikwiad
+        _Algorithm._ikwiad = bool(ikwiad)
+        return None
+
+    @classmethod
+    def _get_method(cls, method: str, hyperparameters: dict[str, any], **kwargs):
+        # check method
+        if method not in cls._methods:
+            raise ValueError(
+                f"Attempted call to an invalid method: {method}.\n"
+                f"Choose from: {cls._methods}."
+            )
+
+        # set checker
+        checker = ParamChecker(
+            prefix=f'{method} hyperparameters',
+            parameters=cls._hyperparameters[method],
+            ikwiad=_Algorithm._ikwiad
+        )
+
+        # return hyperparameters
+        return method, checker(params=hyperparameters, **kwargs)
+
+    @abstractmethod
+    def _set_method(self):
+        pass
+
+    @abstractmethod
+    def __call__(self, *args: any, **kwargs: any):
+        pass
+
+
+########################################################################################################################
+
+
+class Initializer(_Algorithm):
+    r"""
+    **Initialization algorithms.**
 
     Supports:
+        - Kaiming/He Initialization
         - Xavier/Glorot Initialization
         - Gaussian Initialization
         - Uniform Initialization
     """
+    # internals
     _methods: list[str] = [
+        'kaiming',
         'xavier',
         'gaussian',
         'uniform'
     ]
-
-    def __init__(
-            self,
-            method: str,
-            *,
-            hyperparameters: dict[str, any] | None = None,
-            ikwiad: bool = False,
-            **kwargs: any
-    ):
-        r"""
-        **Set initializer method and hyperparameters.**
-
-        Any hyperparameters that remain unfilled are set to their default value.
-        Currently only supports two-dimensional arrays that consist of real numbers.
-
-        xavier (Xavier/Glorot)
-            - mu (float | int), default = 0.0: Distribution mean.
-            - sigma (float | int), default = 1.0, 0.0 < sigma: Distribution standard deviation.
-            - kappa (float | int), default = 1.0: Distribution gain.
-        gaussian (Gaussian/Normal)
-            - mu (float | int), default = 0.0: Distribution mean.
-            - sigma (float | int), default = 1.0, 0.0 < sigma: Distribution standard deviation.
-            - kappa (float | int), default = 1.0: Distribution gain.
-        uniform (Uniform)
-            - kappa (float | int), default = 1.0: Uniform value.
-
-        Args:
-            method (str): Initializer method.
-            hyperparameters (dict | None): Method hyperparameters.
-            ikwiad (bool), default = False: Turns off all warning messages ("I know what I am doing" - ikwiad).
-            **kwargs: Alternate input format for method hyperparameters.
-
-        Raises:
-            TypeError: If any hyperparameters were of the wrong type.
-            ValueError: If invalid values were passed for any of the hyperparameters.
-        """
-        # internals
-        self._ikwiad = bool(ikwiad)
-        self.rng = np.random.default_rng()
-        self._method, self._hyperparams = self._get_method(method=method, hyperparams=hyperparameters, **kwargs)
-
-        # set method
-        self._set_initializer()
-
-    @classmethod
-    def methods(cls) -> list:
-        r"""
-        **Possible initialization methods.**
-
-        Returns:
-            list: Possible initialization methods.
-        """
-        return cls._methods
-
-    def _get_method(self, method: str, hyperparams: dict[str, any], **kwargs) -> tuple[str, dict[str, any]]:
-        # hyperparameter reference
-        default_hyperparams = {
+    _hyperparameters: dict[str, Params] = {
+            'kaiming': Params(
+                default={'beta': 1e-02, 'mu': 0.0, 'sigma': 1.0, 'kappa': 1.0},
+                dtypes={'beta': float, 'mu': float, 'sigma': float, 'kappa': float},
+                vtypes={
+                    'beta': lambda x: 0 <= x,
+                    'mu': lambda x: True,
+                    'sigma': lambda x: 0 < x,
+                    'kappa': lambda x: True
+                },
+                ctypes={
+                    'beta': lambda x: float(x),
+                    'mu': lambda x: float(x),
+                    'sigma': lambda x: float(x),
+                    'kappa': lambda x: float(x)
+                }
+            ),
             'xavier': Params(
                 default={'mu': 0.0, 'sigma': 1.0, 'kappa': 1.0},
-                dtypes={'mu': (float, int), 'sigma': (float, int), 'kappa': (float, int)},
+                dtypes={'mu': float, 'sigma': float, 'kappa': float},
                 vtypes={'mu': lambda x: True, 'sigma': lambda x: 0 < x, 'kappa': lambda x: True},
                 ctypes={'mu': lambda x: float(x), 'sigma': lambda x: float(x), 'kappa': lambda x: float(x)}
             ),
             'gaussian': Params(
                 default={'mu': 0.0, 'sigma': 1.0, 'kappa': 1.0},
-                dtypes={'mu': (float, int), 'sigma': (float, int), 'kappa': (float, int)},
+                dtypes={'mu': float, 'sigma': float, 'kappa': float},
                 vtypes={'mu': lambda x: True, 'sigma': lambda x: 0 < x, 'kappa': lambda x: True},
                 ctypes={'mu': lambda x: float(x), 'sigma': lambda x: float(x), 'kappa': lambda x: float(x)}
             ),
@@ -107,106 +169,137 @@ class Initializers:
             )
         }
 
-        # check method
-        if method not in Initializers._methods:
-            raise ValueError(
-                f"Attempted call to an invalid method: {method}.\n"
-                f"Choose from: {Initializers._methods}."
-            )
+    def __init__(self, method: str, *, hyperparameters: dict[str, any] | None = None, **kwargs: any):
+        r"""
+        **Initialization method and hyperparameter setup.**
 
-        # set checker
-        checker = ParamChecker(
-            prefix=f'{method} hyperparameters',
-            parameters=default_hyperparams[method],
-            ikwiad=self._ikwiad
-        )
+        Any hyperparameters that remain unfilled are set to their default value.
 
-        # return hyperparameters
-        return method, checker(params=hyperparams, **kwargs)
+        kaiming (Kaiming/He)
+            - beta (float), default = 1e-02, 0.0 <= beta: Leaky ReLU slope.
+            - mu (float), default = 0.0: Distribution mean.
+            - sigma (float), default = 1.0, 0.0 < sigma: Distribution standard deviation.
+            - kappa (float), default = 1.0: Distribution gain.
+        xavier (Xavier/Glorot)
+            - mu (float), default = 0.0: Distribution mean.
+            - sigma (float), default = 1.0, 0.0 < sigma: Distribution standard deviation.
+            - kappa (float), default = 1.0: Distribution gain.
+        gaussian (Gaussian/Normal)
+            - mu (float), default = 0.0: Distribution mean.
+            - sigma (float), default = 1.0, 0.0 < sigma: Distribution standard deviation.
+            - kappa (float), default = 1.0: Distribution gain.
+        uniform (Uniform)
+            - kappa (float), default = 1.0: Uniform value.
 
-    def _set_initializer(self) -> None:
+        Parameters:
+            method (str): Method name.
+            hyperparameters (dict[str, any] | None): Method hyperparameters.
+            **kwargs (any): Optional Key-word method hyperparameters.
+
+        Raises:
+            TypeError: Invalid hyperparameter types.
+            ValueError: Invalid hyperparameter values.
+        """
+        super().__init__(method=method, hyperparameters=hyperparameters, **kwargs)
+
+    def _set_method(self):
         # hyperparameter reference
-        if self._hyperparams is not None:
-            h = self._hyperparams.copy()
+        h = self._hyperparams
 
         def initializer_method(func: callable) -> callable:
             def wrapper(*args: int) -> Matrix:
-                # check dimensions
-                if len(args) != 2:
-                    raise ValueError("Attempted initialization with more than two dimensions.")
+                # check dimensionality
                 if not all(isinstance(arg, int) and 0 < arg for arg in args):
-                    raise ValueError("Attempted initialization with dimensions that weren't positive integers.")
+                    raise ValueError(
+                        f"Invalid dimension: Attempted initialization with dimensions that weren't positive integers. "
+                        f"Received dimensions {args}."
+                    )
                 # initialize tensor
                 return Matrix(func(*args))
 
             return wrapper
 
         @initializer_method
-        def xavier(*args: int) -> NDArray:
-            # xavier method
+        def kaiming(*args: int) -> NDArray:
+            # kaiming initialization
             return (
-                h['kappa'] *
-                np.sqrt(2.0 / float(args[-2] + args[-1])) *
-                self.rng.normal(loc=h['mu'], scale=h['sigma'], size=args)
+                h['kappa'] * _Algorithm._rng.normal(
+                    loc=h['mu'],
+                    scale=h['sigma'] * np.sqrt(2.0 / (args[-2] * (1.0 + h['beta'] ** 2))),
+                    size=args
+                )
+            )
+
+        @initializer_method
+        def xavier(*args: int) -> NDArray:
+            # xavier initialization
+            return (
+                h['kappa'] * _Algorithm._rng.normal(
+                    loc=h['mu'],
+                    scale=h['sigma'] * np.sqrt(2.0 / args[-2] + args[-1]),
+                    size=args
+                )
             )
 
         @initializer_method
         def gaussian(*args: int) -> NDArray:
-            # gaussian method
-            return h['kappa'] * self.rng.normal(loc=h['mu'], scale=h['sigma'], size=args)
+            # gaussian initialization
+            return h['kappa'] * _Algorithm._rng.normal(loc=h['mu'], scale=h['sigma'], size=args)
 
         @initializer_method
         def uniform(*args: int) -> NDArray:
-            # uniform method
+            # uniform initialization
             return h['kappa'] * np.ones(args, dtype=np.float64)
 
-        # function reference
-        inits = {
+        # algorithm reference
+        algs = {
+            'kaiming': kaiming,
             'xavier': xavier,
             'gaussian': gaussian,
             'uniform': uniform
         }
-        # get function
-        self._init = inits[self._method]
+        # get algorithm
+        self._algorithm = algs[self._method]
 
     def __call__(self, *args: int) -> Matrix:
         r"""
-        **Returns initialized Tensor with specified dimensions using initialization method.**
+        **Initializes a Matrix with the given initialization algorithm.**
 
-        Args:
-            *args: Tensor's two dimensions of positive integers.
+        Parameters:
+            *args (int): Matrix dimensions.
 
         Returns:
-            Tensor: Initialized Tensor.
+            Matrix: Initialized Matrix.
 
         Raises:
-            ValueError: If the dimensions weren't properly set.
+            ValueError: Invalid dimension types.
         """
-        # initialize
-        return self._init(*args)
+        return self._algorithm(*args)
 
 
 ########################################################################################################################
 
 
-class Activators:
+class Activator(_Algorithm):
     r"""
-    **Activation algorithms for arrays.**
-
-    If used with GardenPy's Tensors, activation functions utilize autograd methods.
-    These activation functions can be used with NumPy arrays, but won't utilize autograd.
-    The derivative of these activation functions can be called if using NumPy arrays.
+    **Activation algorithms**
 
     Supports:
-        - Softmax (broken)
+        - Softmax
         - Rectified Linear Unit (ReLU)
         - Leaky Rectified Linear Unit (Leaky ReLU)
         - Sigmoid
         - Tanh
         - Softplus
         - Mish
+
+    Note:
+        Utilizes Matrix automatic differentiation algorithms.
+        Adding an algorithm should follow the same structure as other algorithms.
     """
-    _methods: List[str] = [
+    # internals
+    _methods: list[str] = [
+        'softmax',
         'relu',
         'lrelu',
         'sigmoid',
@@ -214,121 +307,65 @@ class Activators:
         'softplus',
         'mish'
     ]
+    _hyperparameters: dict[str, Params] = {
+            'softmax': Params(default=None, dtypes=None, vtypes=None, ctypes=None),
+            'relu': Params(default=None, dtypes=None, vtypes=None, ctypes=None),
+            'lrelu': Params(
+                default={'beta': 1e-02},
+                dtypes={'beta': float},
+                vtypes={'beta': lambda x: 0 < x},
+                ctypes={'beta': lambda x: float(x)}
+            ),
+            'sigmoid': Params(default=None, dtypes=None, vtypes=None, ctypes=None),
+            'softplus': Params(
+                default={'beta': 1.0},
+                dtypes={'beta': float},
+                vtypes={'beta': lambda x: 0 < x},
+                ctypes={'beta': lambda x: float(x)}
+            ),
+            'mish': Params(
+                default={'beta': 1.0},
+                dtypes={'beta': float},
+                vtypes={'beta': lambda x: 0 < x},
+                ctypes={'beta': lambda x: float(x)}
+            )
+        }
 
-    def __init__(self, method: str, *, hyperparameters: Optional[dict] = None, ikwiad: bool = False, **kwargs):
+    def __init__(self, method: str, *, hyperparameters: dict[str, any] | None = None, **kwargs: any):
         r"""
-        **Set activator method and hyperparameters.**
+        **Activation method and hyperparameter setup.**
 
         Any hyperparameters that remain unfilled are set to their default value.
-        Supports autograd with Tensors or raw operations with NumPy arrays.
 
         softmax (Softmax)
             - None
         relu (Rectified Linear Unit / ReLU)
             - None
         lrelu (Leaky Rectified Linear Unit / Leaky ReLU)
-            - beta (float | int), default = 1e-2, 0.0 < beta: Negative slope.
+            - beta (float), default = 1e-2, 0.0 < beta: Negative slope.
         sigmoid (Sigmoid)
             - None
         tanh (Tanh)
             - None
         softplus (Softplus)
-            - beta (float | int), default = 1.0, 0.0 <= beta: Vertical stretch.
+            - beta (float), default = 1.0, 0.0 <= beta: Vertical stretch.
         mish (Mish)
-            - beta (float | int), default = 1.0, 0.0 <= beta: Vertical stretch.
+            - beta (float), default = 1.0, 0.0 <= beta: Vertical stretch.
 
-        Args:
-            method (str): Activator method.
-            hyperparameters (dict, optional): Method hyperparameters.
-            ikwiad (bool), default = False: Turns off all warning messages ("I know what I am doing" - ikwiad).
-            **kwargs: Alternate input format for method hyperparameters.
+        Parameters:
+            method (str): Method name.
+            hyperparameters (dict[str, any] | None): Method hyperparameters.
+            **kwargs (any): Optional Key-word method hyperparameters.
 
         Raises:
-            TypeError: If any hyperparameters were of the wrong type.
-            ValueError: If invalid values were passed for any of the hyperparameters.
+            TypeError: Invalid hyperparameter types.
+            ValueError: Invalid hyperparameter values.
         """
-        # allowed methods
-        self._possible_methods = Activators._methods
+        super().__init__(method=method, hyperparameters=hyperparameters, **kwargs)
 
-        # internals
-        self._ikwiad = bool(ikwiad)
-        self._method, self._hyperparams = self._get_method(method=method, hyperparams=hyperparameters, **kwargs)
-
-        # set method
-        self._set_activator()
-
-    @classmethod
-    def methods(cls) -> list:
-        r"""
-        **Possible activator methods.**
-
-        Returns:
-            list: Possible activator methods.
-        """
-        return cls._methods
-
-    def _get_method(self, method: str, hyperparams: dict, **kwargs) -> Tuple[str, dict]:
+    def _set_method(self):
         # hyperparameter reference
-        default_hyperparams = {
-            'softmax': Params(
-                default=None,
-                dtypes=None,
-                vtypes=None,
-                ctypes=None
-            ),
-            'relu': Params(
-                default=None,
-                dtypes=None,
-                vtypes=None,
-                ctypes=None
-            ),
-            'lrelu': Params(
-                default={'beta': 1e-02},
-                dtypes={'beta': (float, int)},
-                vtypes={'beta': lambda x: 0 < x},
-                ctypes={'beta': lambda x: float(x)}
-            ),
-            'sigmoid': Params(
-                default=None,
-                dtypes=None,
-                vtypes=None,
-                ctypes=None
-            ),
-            'softplus': Params(
-                default={'beta': 1.0},
-                dtypes={'beta': (float, int)},
-                vtypes={'beta': lambda x: 0 < x},
-                ctypes={'beta': lambda x: float(x)}
-            ),
-            'mish': Params(
-                default={'beta': 1.0},
-                dtypes={'beta': (float, int)},
-                vtypes={'beta': lambda x: 0 < x},
-                ctypes={'beta': lambda x: float(x)}
-            )
-        }
-
-        # check method
-        if method not in Activators._methods:
-            raise ValueError(
-                f"Attempted call to an invalid method: {method}.\n"
-                f"Choose from: {Activators._methods}."
-            )
-
-        # set checker
-        checker = ParamChecker(
-            prefix=f'{method} hyperparameters',
-            parameters=default_hyperparams[method],
-            ikwiad=self._ikwiad
-        )
-
-        # return hyperparameters
-        return method, checker(params=hyperparams, **kwargs)
-
-    def _set_activator(self) -> None:
-        # hyperparameter reference
-        if self._hyperparams is not None:
-            h = self._hyperparams.copy()
+        h = self._hyperparams
 
         class _Softmax(Matrix.LoneCustomMethod):
             # softmax
@@ -338,7 +375,8 @@ class Activators:
 
             @staticmethod
             def backward(x: NDArray) -> NDArray:
-                raise NotImplementedError("Haven't mathematically derived yet.")
+                # todo: finish this algorithm (lower priority)
+                raise NotImplementedError("Currently mathematically deriving.")
 
         class _ReLU(Matrix.LoneElementWiseMethod):
             # relu
@@ -348,7 +386,7 @@ class Activators:
 
             @staticmethod
             def backward(x: NDArray) -> NDArray:
-                return np.where(x > 0.0, 1.0, 0.0)
+                return np.where(0.0 < x, 1.0, 0.0)
 
         class _LeakyReLU(Matrix.LoneElementWiseMethod):
             # leaky relu
@@ -358,7 +396,7 @@ class Activators:
 
             @staticmethod
             def backward(x: NDArray) -> NDArray:
-                return np.where(x > 0.0, 1.0, h['beta'])
+                return np.where(0.0 < x, 1.0, h['beta'])
 
         class _Sigmoid(Matrix.LoneElementWiseMethod):
             # sigmoid
@@ -399,13 +437,13 @@ class Activators:
             @staticmethod
             def backward(x: NDArray) -> NDArray:
                 return (
-                    np.tanh(np.log(np.exp(h['beta'] * x) + 1.0) / h['beta']) +
-                    x * (np.cosh(np.log(np.exp(h['beta'] * x) + 1.0) / h['beta']) ** -2.0) *
-                    (h['beta'] * np.exp(h['beta'] * x) / (h['beta'] * np.exp(h['beta'] * x) + h['beta']))
+                    np.tanh(np.log(np.exp(h['beta'] * x) + 1.0) / h['beta'])
+                    + x * (np.cosh(np.log(np.exp(h['beta'] * x) + 1.0) / h['beta']) ** -2.0)
+                    * (h['beta'] * np.exp(h['beta'] * x) / (h['beta'] * np.exp(h['beta'] * x) + h['beta']))
                 )
 
-        # operator reference
-        ops = {
+        # algorithm reference
+        algs = {
             'softmax': _Softmax,
             'relu': _ReLU,
             'lrelu': _LeakyReLU,
@@ -414,182 +452,140 @@ class Activators:
             'softplus': _Softplus,
             'mish': _Mish
         }
-        # get operator
-        self._op = ops[self._method]()
+        # get algorithm
+        self._algorithm = algs[self._method]()
 
-    def __call__(self, x: Union[Matrix, NDArray]) -> Union[Matrix, NDArray]:
+    def __call__(self, x: Matrix | NDArray) -> Matrix | NDArray:
         r"""
-        **Forward function call.**
+        **Main method call.**
 
-        Autograd is automatically applied if Tensors are used.
-        Otherwise, raw operation is applied without autograd.
-
-        Args:
-            x (Tensor | NDArray): Inputted array.
+        Parameters:
+            x (Matrix | NDArray): Main array.
 
         Returns:
-            Tensor | NDArray: Activated array.
+            Matrix | NDArray: Activated array.
 
         Raises:
-            TypeError: If an invalid object was passed for the operation.
+            TypeError: Invalid main array type.
+
+        Note:
+            Utilizes Matrix automatic differentiation algorithms if the argument is a Matrix.
+            These can be used with NDArrays, but won't utilize automatic differentiation.
         """
-        if isinstance(x, Matrix):
-            # x tensor
-            return self._op.main(x)
-        elif isinstance(x, np.ndarray):
-            # x array
-            return self._op.forward(x)
-        else:
-            # x error
-            raise TypeError("Attempted activation with an object that wasn't a matrix Tensor or NumPy array.")
+        return self._algorithm.main(main=x)
 
     def derivative(self, x: NDArray) -> NDArray:
         r"""
-        **Backward function call.**
+        **Derivative method call.**
 
-        Automatically done with autograd for Tensors.
-        Raw derivative operation should only be done on NumPy arrays.
-
-        Args:
-            x (NDArray): Inputted array.
+        Parameters:
+            x (NDArray): Main array.
 
         Returns:
-            NDArray: Derivative activated array.
+            NDArray: Main derivative.
 
         Raises:
-            TypeError: If an invalid object was passed for the operation.
+            TypeError: Invalid main object.
+
+        Note:
+            Matrices automatically use the derivative algorithm during nabla calls.
+            Raw derivative algorithm calls should only be done with NDArrays.
+            Furthermore, raw derivative algorithm calls are highly unstable.
+            This is as they don't undergo any checks and return an array with non-consistent dimensions.
+            It's recommended to not use this function call if possible.
         """
-        if not isinstance(x, np.ndarray):
-            # x error
-            raise TypeError("Attempted derivative activation with an object that wasn't a NumPy array.")
-        return self._op.backward(x)
+        if not _Algorithm._ikwiad:
+            warn(
+                "This library stores gradients fourth-dimensionally. "
+                "While most algorithms are first represented two-dimensionally, then extended into the fourth-"
+                "dimension, there's a chance that the algorithm you're referencing only uses the fourth-dimensional "
+                "representation.",
+                UserWarning
+            )
+        if isinstance(x, np.ndarray):
+            # raw backward algorithm
+            return self._algorithm.backward(x=x)
+        # invalid type
+        raise TypeError(
+            f"Failed object: Object x must be an array. "
+            f"Received object of type {type(x)}."
+        )
 
 
 ########################################################################################################################
 
 
-class Losses:
+class Criterion(_Algorithm):
     r"""
-    **Loss algorithms for arrays.**
-
-    If used with GardenPy's Tensors, loss functions utilize autograd methods.
-    These loss functions can be used with NumPy arrays, but won't utilize autograd.
-    The derivative of these loss functions can be called if using NumPy arrays.
+    **Criterion algorithms**
 
     Supports:
         - Cross Entropy
         - Sum of the Squared Residuals
         - Sum of the Absolute Value Residuals
+
+    Note:
+        Utilizes Matrix automatic differentiation algorithms.
+        Adding an algorithm should follow the same structure as other algorithms.
     """
-    _methods: List[str] = [
+    # internals
+    _methods: list[str] = [
         'centropy',
         'ssr',
         'savr'
     ]
+    _hyperparameters: dict[Params] = {
+            'centropy': Params(default=None, dtypes=None, vtypes=None, ctypes=None),
+            'ssr': Params(default=None, dtypes=None, vtypes=None, ctypes=None),
+            'savr': Params(default=None, dtypes=None, vtypes=None, ctypes=None),
+        }
 
-    def __init__(self, method: str, *, hyperparameters: Optional[dict] = None, ikwiad: bool = False, **kwargs):
+    def __init__(self, method: str, *, hyperparameters: dict[str, any] | None = None, **kwargs: any):
         r"""
-        **Set loss method and hyperparameters.**
+        **Criterion method and hyperparameter setup.**
 
         Any hyperparameters that remain unfilled are set to their default value.
-        Supports autograd with Tensors or raw operations with NumPy arrays.
 
         centropy (Cross Entropy):
-            - epsilon (float), default = 1e-10, 0.0 < epsilon < 1e-02: Numerical stability constant.
+            - None
         ssr (Sum of the Squared Residuals):
             - None
         savr (Sum of the Absolute Value Residuals):
             - None
 
-        Args:
-            method (str): Loss method.
-            hyperparameters (dict, optional): Method hyperparameters.
-            ikwiad (bool), default = False: Turns off all warning messages ("I know what I am doing" - ikwiad).
-            **kwargs: Alternate input format for method hyperparameters.
+        Parameters:
+            method (str): Method name.
+            hyperparameters (dict[str, any] | None): Method hyperparameters.
+            **kwargs (any): Optional Key-word method hyperparameters.
 
         Raises:
-            TypeError: If any hyperparameters were of the wrong type.
-            ValueError: If invalid values were passed for any of the hyperparameters.
+            TypeError: Invalid hyperparameter types.
+            ValueError: Invalid hyperparameter values.
         """
-        # allowed methods
-        self._possible_methods = Losses._methods
+        super().__init__(method=method, hyperparameters=hyperparameters, **kwargs)
 
-        # internals
-        self._ikwiad = bool(ikwiad)
-        self._method, self._hyperparams = self._get_method(method=method, hyperparams=hyperparameters, **kwargs)
-
-        # set method
-        self._set_loss()
-
-    @classmethod
-    def methods(cls):
-        r"""
-        **Possible loss methods.**
-
-        Returns:
-            list: Possible loss methods.
-        """
-        return cls._methods
-
-    def _get_method(self, method: str, hyperparams: dict, **kwargs) -> Tuple[str, dict]:
+    def _set_method(self):
+        # NB: No hyperparameters are used in any current criterion algorithm.
+        # If there's ever a criterion algorithm that needs hyperparameters, uncomment the line defining h below.
         # hyperparameter reference
-        default_hyperparams = {
-            'centropy': Params(
-                default={'epsilon': 1e-10},
-                dtypes={'epsilon': float},
-                vtypes={'epsilon': lambda x: 0.0 < x < 1e-02},
-                ctypes={'epsilon': lambda x: x}
-            ),
-            'ssr': Params(
-                default=None,
-                dtypes=None,
-                vtypes=None,
-                ctypes=None
-            ),
-            'savr': Params(
-                default=None,
-                dtypes=None,
-                vtypes=None,
-                ctypes=None
-            ),
-        }
-
-        # check method
-        if method not in Losses._methods:
-            raise ValueError(
-                f"Attempted call to an invalid method: {method}.\n"
-                f"Choose from: {Losses._methods}."
-            )
-
-        # set checker
-        checker = ParamChecker(
-            prefix=f'{method} hyperparameters',
-            parameters=default_hyperparams[method],
-            ikwiad=self._ikwiad
-        )
-
-        # return hyperparameters
-        return method, checker(params=hyperparams, **kwargs)
-
-    def _set_loss(self) -> None:
-        # hyperparameter reference
-        if self._hyperparams is not None:
-            h = self._hyperparams.copy()
+        # h = self._hyperparams
 
         class _CrossEntropy(Matrix.ScalarMethod):
             # centropy
             @staticmethod
+            @inf_remove(inf_val=1e10)
             def forward(yhat: NDArray, y: NDArray) -> NDArray:
-                return np.array([[-np.sum(y * np.log(yhat + h['epsilon']))]])
+                return -np.sum(y * np.log(yhat))[None, None]
 
             @staticmethod
+            @inf_remove(inf_val=1e10)
             def backward(yhat: NDArray, y: NDArray) -> NDArray:
-                return -y / (yhat + h['epsilon'])
+                return -y / yhat
 
             @staticmethod
             def other_backward(yhat: any, y: any):
                 raise NotImplementedError(
-                    "No defined method: "
+                    "Undefined defined method: "
                     "Backward method was intentionally left undefined for this algorithm."
                 )
 
@@ -597,7 +593,7 @@ class Losses:
             # ssr
             @staticmethod
             def forward(yhat: NDArray, y: NDArray) -> NDArray:
-                return np.array([[np.sum((y - yhat) ** 2.0)]])
+                return np.sum((y - yhat) ** 2.0)[None, None]
 
             @staticmethod
             def backward(yhat: NDArray, y: NDArray) -> NDArray:
@@ -606,7 +602,7 @@ class Losses:
             @staticmethod
             def other_backward(yhat: any, y: any):
                 raise NotImplementedError(
-                    "No defined method: "
+                    "Undefined defined method: "
                     "Backward method was intentionally left undefined for this algorithm."
                 )
 
@@ -614,7 +610,7 @@ class Losses:
             # savr
             @staticmethod
             def forward(yhat: NDArray, y: NDArray) -> NDArray:
-                return np.array([[np.sum(np.abs(y - yhat))]])
+                return np.sum(np.abs(y - yhat))[None, None]
 
             @staticmethod
             def backward(yhat: NDArray, y: NDArray) -> NDArray:
@@ -623,350 +619,222 @@ class Losses:
             @staticmethod
             def other_backward(yhat: any, y: any):
                 raise NotImplementedError(
-                    "No defined method: "
+                    "Undefined defined method: "
                     "Backward method was intentionally left undefined for this algorithm."
                 )
 
-        # operator reference
-        ops = {
+        # algorithm reference
+        algs = {
             'centropy': _CrossEntropy,
             'ssr': _SumOfSquaredResiduals,
             'savr': _SumOfAbsoluteValueResiduals
         }
-        # get operator
-        self._op = ops[self._method]()
+        # get algorithm
+        self._algorithm = algs[self._method]()
 
-    def __call__(self, yhat: Union[Matrix, NDArray], y: Union[Matrix, NDArray]) -> Union[Matrix, NDArray]:
+    def __call__(self, yhat: Matrix | NDArray, y: Matrix | NDArray) -> Matrix | NDArray:
         r"""
-        **Forward function call.**
+        **Main method call.**
 
-        Autograd is automatically applied if Tensors are used.
-        Otherwise, raw operation is applied without autograd.
-
-        Args:
-            yhat (Tensor | NDArray): Predicted output.
-            y (Tensor | NDArray): Expected output.
+        Parameters:
+            yhat (Matrix | NDArray): Predicted output.
+            y (Matrix | NDArray): Expected output.
 
         Returns:
-            Tensor | NDArray: Loss.
+            Matrix | NDArray: Loss.
 
         Raises:
-            TypeError: If an invalid object was passed for the operation.
+            TypeError: Invalid yhat or y types.
+
+        Note:
+            Utilizes Matrix automatic differentiation algorithms if the argument is a Matrix.
+            These can be used with NDArrays, but won't utilize automatic differentiation.
         """
-        if not isinstance(y, (Matrix, np.ndarray)):
-            # y error
-            raise TypeError("Attempted loss with an expected object that wasn't a matrix Tensor or NumPy array.")
-        if isinstance(yhat, Matrix):
-            # yhat tensor
-            return self._op.main(yhat, y)
-        elif isinstance(yhat, np.ndarray):
-            # yhat array
-            return self._op.forward(yhat, y)
-        else:
-            # yhat error
-            raise TypeError("Attempted loss with a predicted object that wasn't a matrix Tensor or NumPy array.")
+        return self._algorithm.main(main=yhat, other=y)
 
     def derivative(self, yhat: NDArray, y: NDArray) -> NDArray:
         r"""
-        **Backward function call.**
+        **Derivative method call.**
 
-        Automatically done with autograd for Tensors.
-        Raw derivative operation should only be done on NumPy arrays.
-
-        Args:
-            yhat (Tensor | NDArray): Predicted output.
-            y (Tensor | NDArray): Expected output.
+        Parameters:
+            yhat (NDArray): Predicted output.
+            y (NDArray): Expected output.
 
         Returns:
-            NDArray: Derivative activated array.
+            NDArray: Loss derivative.
 
         Raises:
-            TypeError: If an invalid object was passed for the operation.
+            TypeError: Invalid main object.
+
+        Note:
+            Matrices automatically use the derivative algorithm during nabla calls.
+            Raw derivative algorithm calls should only be done with NDArrays.
+            Furthermore, raw derivative algorithm calls are highly unstable.
+            This is as they don't undergo any checks and return an array with non-consistent dimensions.
+            It's recommended to not use this function call if possible.
         """
-        if not isinstance(yhat, np.ndarray):
-            # yhat error
-            raise TypeError("Attempted derivative loss with a predicted object that wasn't a NumPy array.")
-        if not isinstance(y, np.ndarray):
-            # y error
-            raise TypeError("Attempted derivative loss with an expected object that wasn't a NumPy array.")
-        return self._op.backward(y, yhat)
+        if not _Algorithm._ikwiad:
+            warn(
+                "This library stores gradients fourth-dimensionally. "
+                "While most algorithms are first represented two-dimensionally, then extended into the fourth-"
+                "dimension, there's a chance that the algorithm you're referencing only uses the fourth-dimensional "
+                "representation.",
+                UserWarning
+            )
+        if isinstance(yhat, np.ndarray) and isinstance(y, np.ndarray):
+            # raw backward algorithm
+            return self._algorithm.backward(yhat=yhat, y=y)
+        # invalid type
+        raise TypeError(
+            f"Failed objects: Objects yhat and y must be arrays. "
+            f"Received objects of type yhat: {type(yhat)} and y: {type(y)}."
+        )
 
 
 ########################################################################################################################
 
 
-class Optimizers:
+class Optimizer(_Algorithm):
     r"""
-    **Optimization algorithms for arrays.**
-
-    If used with GardenPy's Tensors, optimizers utilize ID conserving and replacement.
-    Tensors also utilize their IDs to store memory instances within the optimizer instance.
+    **Optimization algorithms**
 
     Supports:
         - Adaptive Moment Estimation (Adam)
         - Stochastic Gradient Descent (SGD)
         - Root Mean Squared Propagation (RMSProp)
         - Adaptive Gradient Algorithm (AdaGrad) (broken)
+
+    Note:
+        Alters a Matrix's tensor rather than creating a new Matrix if correlator is used.
+        This keeps the Matrix's internals the same after running optimization on it.
     """
-    _methods: List[str] = [
+    _methods: list[str] = [
         'adam',
         'sgd',
         'rmsp'
     ]
+    _hyperparameters: dict[Params] = {
+        'adam': Params(
+            default={'alpha': 1e-03, 'lambda_d': 0.0, 'beta_1': 0.9, 'beta_2': 0.999, 'epsilon': 1e-10, 'ams': False},
+            dtypes={
+                'alpha': float,
+                'lambda_d': float,
+                'beta_1': float,
+                'beta_2': float,
+                'epsilon': float,
+                'ams': (bool, int)
+            },
+            vtypes={
+                'alpha': lambda x: True,
+                'lambda_d': lambda x: 0.0 <= x < 1.0,
+                'beta_1': lambda x: 0.0 < x < 1.0,
+                'beta_2': lambda x: 0.0 < x < 1.0,
+                'epsilon': lambda x: 0.0 < x <= 1e-02,
+                'ams': lambda x: True
+            },
+            ctypes={
+                'alpha': lambda x: float(x),
+                'lambda_d': lambda x: float(x),
+                'beta_1': lambda x: float(x),
+                'beta_2': lambda x: float(x),
+                'epsilon': lambda x: x,
+                'ams': lambda x: bool(x)
+            }
+        ),
+        'sgd': Params(
+            default={'alpha': 1e-03, 'lambda_d': 0.0, 'mu': 0.0, 'tau': 0.0, 'nesterov': False},
+            dtypes={'alpha': float, 'lambda_d': float, 'mu': float, 'tau': float, 'nesterov': (bool, int)},
+            vtypes={
+                'alpha': lambda x: True,
+                'lambda_d': lambda x: 0.0 <= x < 1.0,
+                'mu': lambda x: 0.0 <= x < 1.0,
+                'tau': lambda x: 0.0 <= x < 1.0,
+                'nesterov': lambda x: True
+            },
+            ctypes={
+                'alpha': lambda x: float(x),
+                'lambda_d': lambda x: float(x),
+                'mu': lambda x: float(x),
+                'tau': lambda x: float(x),
+                'nesterov': lambda x: bool(x)
+            }
+        ),
+        'rmsp': Params(
+            default={'alpha': 1e-03, 'lambda_d': 0.0, 'beta': 0.99, 'mu': 0.0, 'epsilon': 1e-10},
+            dtypes={'alpha': float, 'lambda_d': float, 'beta': float, 'mu': float, 'epsilon': float},
+            vtypes={
+                'alpha': lambda x: True,
+                'lambda_d': lambda x: 0.0 <= x < 1.0,
+                'beta': lambda x: 0.0 <= x < 1.0,
+                'mu': lambda x: 0.0 <= x < 1.0,
+                'epsilon': lambda x: 0.0 < x <= 1e-02
+            },
+            ctypes={
+                'alpha': lambda x: float(x),
+                'lambda_d': lambda x: float(x),
+                'beta': lambda x: float(x),
+                'mu': lambda x: float(x),
+                'epsilon': lambda x: float(x)
+            }
+        )
+    }
 
-    def __init__(
-            self,
-            method: str,
-            *,
-            hyperparameters: Optional[dict] = None,
-            correlator: bool = True,
-            ikwiad: bool = False,
-            **kwargs
-    ):
+    def __init__(self, method: str, *, hyperparameters: dict[str, any] | None = None, corr: bool = True, **kwargs: any):
         r"""
-        **Set optimizer method and hyperparameters.**
+        **Optimization method and hyperparameter setup.**
 
         Any hyperparameters that remain unfilled are set to their default value.
-        Supports ID conservation and memory with Tensors or raw operations with NumPy arrays.
 
         adam:
-            - alpha (float, int), default = 1e-03: Learning rate.
-            - lambda_d (float, int), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
-            - beta_1 (float, int), default = 0.9, 0 < lambda_d < 1.0: First moment beta.
-            - beta_2 (float, int), default = 0.999, 0 < lambda_d < 1.0: Second moment beta.
+            - alpha (float), default = 1e-03: Learning rate.
+            - lambda_d (float), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
+            - beta_1 (float), default = 0.9, 0 < lambda_d < 1.0: First moment beta.
+            - beta_2 (float), default = 0.999, 0 < lambda_d < 1.0: Second moment beta.
             - epsilon (float), default = 1e-10, 0 < epsilon <= 1e-02: Numerical stability constant.
             - ams (bool, int), default = False: Adam AMS variant.
         sgd:
-            - alpha (float, int), default = 1e-03: Learning rate.
-            - lambda_d (float, int), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
-            - mu (float, int), default = 0.0, 0.0 <= mu < 1.0: Momentum.
-            - tau (float, int), default = 0.0, 0.0 <= tau < 1.0: Dampening.
+            - alpha (float), default = 1e-03: Learning rate.
+            - lambda_d (float), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
+            - mu (float), default = 0.0, 0.0 <= mu < 1.0: Momentum.
+            - tau (float), default = 0.0, 0.0 <= tau < 1.0: Dampening.
             - nesterov (bool, int), default = False: Nesterov variant.
         rmsp:
-            - alpha (float, int), default = 1e-03: Learning rate.
-            - lambda_d (float, int), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
-            - beta (float, int), default = 0.99, 0.0 <= beta < 1.0: First moment beta.
-            - mu (float, int), default = 0.0, 0.0 <= mu < 1.0: Momentum.
-            - epsilon (float), default = 1e-10, 0 < epsilon <= 1e-02: Numerical stability constant.
-        adag:
-            - alpha (float, int), default = 1e-03: Learning rate.
-            - lambda_d (float, int), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
-            - nu (float, int), default = 0.0, 0.0 <= nu <= 1.0: Learning rate decay rate.
+            - alpha (float), default = 1e-03: Learning rate.
+            - lambda_d (float), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
+            - beta (float), default = 0.99, 0.0 <= beta < 1.0: First moment beta.
+            - mu (float), default = 0.0, 0.0 <= mu < 1.0: Momentum.
             - epsilon (float), default = 1e-10, 0 < epsilon <= 1e-02: Numerical stability constant.
 
-        Args:
-            method (str): Optimizer method.
-            hyperparameters (dict, optional): Method hyperparameters.
-            correlator (bool), default = True: Remembers unique instances for different Tensors.
-            ikwiad (bool), default = False: Turns off all warning messages ("I know what I am doing" - ikwiad).
-            **kwargs: Alternate input format for method hyperparameters.
+        Parameters:
+            method (str): Method name.
+            hyperparameters (dict[str, any] | None): Method hyperparameters.
+            corr: bool, default = True: Memory correlation for Matrices.
+            **kwargs (any): Optional Key-word method hyperparameters.
 
         Raises:
-            TypeError: If any hyperparameters were of the wrong type.
-            ValueError: If invalid values were passed for any of the hyperparameters.
+            TypeError: Invalid hyperparameter types.
+            ValueError: Invalid hyperparameter values.
 
         Note:
-            The correlator keeps track of memory for each unique Tensor.
-            It uses a Tensor's ID to reference this memory.
+            The correlator keeps track of memory for each unique Matrix.
+            It uses a Matrix's ID to reference this memory.
+            These memory instances are automatically created based, using a Matrix's ID for identification.
             If turned off, a single memory instance will be saved throughout an instance of the class.
+            This memory is important for any optimization algorithm that references previous terms.
 
         Note:
-            Non-Tensor objects should have correlator off.
-            If correlator is on and a non-Tensor object is passed, there will be an attempt to create new blank memory.
-            This most likely will result in errors, and should be avoided if possible.
+            Non-Matrix objects should have correlator off.
+            If the correlator is on and a non-Matrix object is inputted, the algorithm will error.
         """
-        # internals
-        self._ikwiad = bool(ikwiad)
-        self._correlator = bool(correlator)
-        self._method, self._hyperparams = self._get_method(method=method, hyperparams=hyperparameters, **kwargs)
+        super().__init__(method=method, hyperparameters=hyperparameters, **kwargs)
+        self._correlator: bool = bool(corr)
+        self._memories: dict[str, NDArray | float] | None = None
         if self._correlator:
             self._memories = {}
-        else:
-            self._memories = None
 
-        # set method
-        self._set_optimizer()
-
-    @classmethod
-    def methods(cls) -> list:
-        r"""
-        **Possible optimization methods.**
-
-        Returns:
-            list: Possible optimization methods.
-        """
-        return cls._methods
-
-    def _get_method(self, method: str, hyperparams: dict, **kwargs) -> Tuple[str, dict]:
+    def _set_method(self):
         # hyperparameter reference
-        default_hyperparams = {
-            'adam': Params(
-                default={
-                    'alpha': 1e-03,
-                    'lambda_d': 0.0,
-                    'beta_1': 0.9,
-                    'beta_2': 0.999,
-                    'epsilon': 1e-10,
-                    'ams': False
-                },
-                dtypes={
-                    'alpha': (float, int),
-                    'lambda_d': (float, int),
-                    'beta_1': (float, int),
-                    'beta_2': (float, int),
-                    'epsilon': float,
-                    'ams': (bool, int)
-                },
-                vtypes={
-                    'alpha': lambda x: True,
-                    'lambda_d': lambda x: 0.0 <= x < 1.0,
-                    'beta_1': lambda x: 0.0 < x < 1.0,
-                    'beta_2': lambda x: 0.0 < x < 1.0,
-                    'epsilon': lambda x: 0.0 < x <= 1e-02,
-                    'ams': lambda x: True
-                },
-                ctypes={
-                    'alpha': lambda x: float(x),
-                    'lambda_d': lambda x: float(x),
-                    'beta_1': lambda x: float(x),
-                    'beta_2': lambda x: float(x),
-                    'epsilon': lambda x: x,
-                    'ams': lambda x: bool(x)
-                }
-            ),
-            'sgd': Params(
-                default={
-                    'alpha': 1e-03,
-                    'lambda_d': 0.0,
-                    'mu': 0.0,
-                    'tau': 0.0,
-                    'nesterov': False
-                },
-                dtypes={
-                    'alpha': (float, int),
-                    'lambda_d': (float, int),
-                    'mu': (float, int),
-                    'tau': (float, int),
-                    'nesterov': (bool, int)
-                },
-                vtypes={
-                    'alpha': lambda x: True,
-                    'lambda_d': lambda x: 0.0 <= x < 1.0,
-                    'mu': lambda x: 0.0 <= x < 1.0,
-                    'tau': lambda x: 0.0 <= x < 1.0,
-                    'nesterov': lambda x: True
-                },
-                ctypes={
-                    'alpha': lambda x: float(x),
-                    'lambda_d': lambda x: float(x),
-                    'mu': lambda x: float(x),
-                    'tau': lambda x: float(x),
-                    'nesterov': lambda x: bool(x)
-                }
-            ),
-            'rmsp': Params(
-                default={
-                    'alpha': 1e-03,
-                    'lambda_d': 0.0,
-                    'beta': 0.99,
-                    'mu': 0.0,
-                    'epsilon': 1e-10
-                },
-                dtypes={
-                    'alpha': (float, int),
-                    'lambda_d': (float, int),
-                    'beta': (float, int),
-                    'mu': (float, int),
-                    'epsilon': (float, int)
-                },
-                vtypes={
-                    'alpha': lambda x: True,
-                    'lambda_d': lambda x: 0.0 <= x < 1.0,
-                    'beta': lambda x: 0.0 <= x < 1.0,
-                    'mu': lambda x: 0.0 <= x < 1.0,
-                    'epsilon': lambda x: 0.0 < x <= 1e-02
-                },
-                ctypes={
-                    'alpha': lambda x: float(x),
-                    'lambda_d': lambda x: float(x),
-                    'beta': lambda x: float(x),
-                    'mu': lambda x: float(x),
-                    'epsilon': lambda x: float(x)
-                }
-            ),
-            'adag': Params(
-                default={
-                    'alpha': 1e-03,
-                    'lambda_d': 0.0,
-                    'nu': 0.0,
-                    'epsilon': 1e-10
-                },
-                dtypes={
-                    'alpha': (float, int),
-                    'lambda_d': (float, int),
-                    'nu': (float, int),
-                    'epsilon': (float, int)
-                },
-                vtypes={
-                    'alpha': lambda x: True,
-                    'lambda_d': lambda x: 0.0 <= x < 1.0,
-                    'nu': lambda x: 0.0 <= x <= 1.0,
-                    'epsilon': lambda x: 0.0 < x <= 1e-02
-                },
-                ctypes={
-                    'alpha': lambda x: float(x),
-                    'lambda_d': lambda x: float(x),
-                    'nu': lambda x: float(x),
-                    'epsilon': lambda x: float(x)
-                }
-            )
-        }
-
-        # check method
-        if method not in Optimizers._methods:
-            raise ValueError(
-                f"Invalid method: {method}.\n"
-                f"Choose from: {Optimizers._methods}."
-            )
-
-        # set checker
-        checker = ParamChecker(
-            prefix=f'{method} hyperparameters',
-            parameters=default_hyperparams[method],
-            ikwiad=self._ikwiad
-        )
-
-        # return hyperparameters
-        return method, checker(params=hyperparams, **kwargs)
-
-    def _get_memories(self, theta: NDArray) -> dict:
-        # initializes memory dictionary
-        memories = {
-            'adam': {
-                'psi_p': 0.0 * theta,
-                'omega_p': 0.0 * theta,
-                'iota': 1.0,
-                'omega_hat_max': 0.0 * theta
-            },
-            'sgd': {
-                'delta_p': 0.0 * theta
-            },
-            'rmsp': {
-                'delta_p': 0.0 * theta,
-                'omega_p': 0.0 * theta
-            },
-            'adag': {
-                'omega_p': 0.0 * theta,
-                'iota': 1.0
-            }
-        }
-        # return memory dictionary
-        return memories[self._method]
-
-    def _set_optimizer(self) -> None:
-        # hyperparameter reference
-        if self._hyperparams is not None:
-            h = self._hyperparams.copy()
+        h = self._hyperparams
 
         def adam(theta: NDArray, nabla: NDArray, m: dict) -> NDArray:
             # adam
@@ -1011,82 +879,90 @@ class Optimizers:
 
             return theta - h['alpha'] * delta
 
-        def adag(theta: NDArray, nabla: NDArray, m: dict) -> NDArray:
-            # adag
-            # todo: correct implementation
-            gamma = nabla + h['lambda_d'] * theta
-
-            alpha_hat = h['alpha'] / (1.0 + (m['iota'] - 1.0) * h['nu'])
-
-            omega = m['omega_p'] + gamma ** 2.0
-            m['omega_p'] = omega
-
-            m['iota'] += 1.0
-            return theta - alpha_hat * gamma / (np.sqrt(omega) + h['epsilon'])
-
-        # method reference
+        # algorithm reference
         algs = {
             'adam': adam,
             'sgd': sgd,
-            'rmsp': rmsp,
-            'adag': adag
+            'rmsp': rmsp
         }
-        # get method
-        self._alg = algs[self._method]
+        # get algorithm
+        self._algorithm = algs[self._method]
 
-    # todo: this logic is very weird
-    def __call__(self, theta: Union[Matrix, NDArray], nabla: Union[Gradient, NDArray]) -> None:
+    def _get_memories(self, theta: NDArray) -> dict[str, NDArray | float]:
+        # initialize memory dictionary
+        memories = {
+            'adam': {
+                'psi_p': np.zeros(theta.shape),
+                'omega_p': np.zeros(theta.shape),
+                'iota': 1.0,
+                'omega_hat_max': np.zeros(theta.shape)
+            },
+            'sgd': {
+                'delta_p': np.zeros(theta.shape)
+            },
+            'rmsp': {
+                'delta_p': np.zeros(theta.shape),
+                'omega_p': np.zeros(theta.shape)
+            },
+            'adag': {
+                'omega_p': np.zeros(theta.shape),
+                'iota': 1.0
+            }
+        }
+        # return memory dictionary
+        return memories[self._method]
+
+    def __call__(self, theta: Matrix | NDArray, nabla: Gradient | NDArray) -> NDArray | None:
         r"""
-        **Optimization.**
+        **Optimization method call.**
 
-        ID conserving is automatically called on all Tensors.
-        If correlator is on, memory will be saved for each Tensor instance.
-        NumPy arrays are supported, but cannot use the correlator.
-        If NumPy arrays are used with correlator on, an error will most likely occur.
-
-        Args:
-            theta (Tensor | NDArray): Initial theta.
-            nabla (Tensor | NDArray): Gradient.
+        Parameters:
+            theta (Matrix | NDArray): Initial theta.
+            nabla (Matrix | NDArray): Gradient.
 
         Returns:
-            Tensor | NDArray: Optimized theta.
+            NDArray | None: Optimized theta if using NDArrays.
 
         Raises:
-            TypeError: If an invalid object was passed for the operation.
-            ValueError: If there was a failed attempt at using the correlator for NumPy arrays.
+            TypeError: Invalid nabla object type.
+            ValueError: Invalid correlator handling.
+
+        Note:
+            Matrices retain their internals and automatically create their new memory within the optimizer class.
+            NDArrays are supported, but cannot use the correlator.
+            If the correlator is on and a non-Matrix object is inputted, the algorithm will error.
         """
+        # nabla handling
         if isinstance(nabla, Gradient):
-            # theta tensor
+            # gradient reduction
             nabla = np.sum(nabla.tensor, axis=(0, 1))
         elif not isinstance(nabla, np.ndarray):
             # nabla error
-            raise TypeError("Attempted optimization with an object that wasn't a matrix Tensor or NumPy array.")
+            raise TypeError(
+                f"Failed object: An invalid object was passed for nabla. Nabla must be a Gradient or array. "
+                f"Received nabla type of {type(nabla)}."
+            )
 
-        if isinstance(theta, Matrix) and self._correlator:
-            # theta tensor and correlator
+        if self._correlator and isinstance(theta, Matrix):
+            # memory
             if theta.id not in self._memories.keys():
-                # add memory
                 self._memories.update({theta.id: self._get_memories(theta=theta.tensor)})
-            # method
-            result = self._alg(theta=theta.tensor, nabla=nabla, m=self._memories[theta.id])
-            # id conserving
+            # algorithm
+            result = self._algorithm(theta=theta.tensor, nabla=nabla, m=self._memories[theta.id])
             theta.tensor = result
-        elif isinstance(theta, Matrix):
-            # theta tensor
-            if self._memories is None:
-                # initialize memory
-                self._memories = self._get_memories(theta=theta.tensor)
-            # method
-            result = Matrix(self._alg(theta=theta.tensor, nabla=nabla, m=self._memories))
-            # id conserving
-            Matrix.replace(replaced=theta, replacer=result)
-        elif isinstance(theta, np.ndarray) and not self._correlator:
-            # theta array
+            return None
+
+        elif not self._correlator and isinstance(theta, np.ndarray):
             if self._memories is None:
                 # initialize memory
                 self._memories = self._get_memories(theta=theta)
-            # method
-        else:
-            # theta error
-            raise ValueError("Attempted correlator reference with arrays.")
-        return None
+            # algorithm
+            return self._algorithm(theta=theta, nabla=nabla, m=self._memories)
+
+        # theta error
+        raise ValueError(
+            f"Failed optimization call: Failed to optimize given theta with given nabla. "
+            f"This is likely due to improper handling of correlator toggling or invalid theta types. "
+            f"Received theta of type {type(theta)} with correlator set to {self._correlator}. "
+            f"Refer to the __init__ docstring for how to properly handle the correlator."
+        )

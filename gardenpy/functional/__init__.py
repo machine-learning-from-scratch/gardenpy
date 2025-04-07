@@ -14,10 +14,10 @@ Contains:
     - :func:`zero_grad`
     - :func:`add_tags`
     - :func:`replace`
-    - :class:`Initializers`
-    - :class:`Activators`
-    - :class:`Losses`
-    - :class:`Optimizers`
+    - :class:`Initializer`
+    - :class:`Activator`
+    - :class:`Criterion`
+    - :class:`Optimizer`
     - :func:`inf_remove`
 """
 
@@ -34,10 +34,10 @@ from .operators import (
     replace
 )
 from .algorithms import (
-    Initializers,
-    Activators,
-    Losses,
-    Optimizers
+    Initializer,
+    Activator,
+    Criterion,
+    Optimizer
 )
 from .raw_operators import inf_remove
 
@@ -50,9 +50,9 @@ __all__ = [
     'zero_grad',
     'replace',
     'add_tags',
-    'Initializers',
-    'Activators',
-    'Losses',
-    'Optimizers',
+    'Initializer',
+    'Activator',
+    'Criterion',
+    'Optimizer',
     'inf_remove'
 ]

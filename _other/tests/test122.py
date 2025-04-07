@@ -5,12 +5,13 @@ SSR
 """
 
 import gardenpy as gp
+from gardenpy.functional.old_algorithms import Initializers, Activators, Losses, Optimizers
 import time
 
 ########################################################################################################################
 
 # training parameters
-epochs = 1_000
+epochs = 10_000
 
 # parameters
 w1 = gp.Initializer('xavier')(2, 4)
@@ -23,9 +24,9 @@ gp.functional.add_tags(
     tags=[['w1', 'retain'], ['b1', 'retain'], ['w2', 'retain'], ['b2', 'retain']]
 )
 # hyperparameters
-g = gp.Activator('lrelu', beta=0.1)
-criterion = gp.Criterion('ssr')
-optim = gp.Optimizer('adam', alpha=1e-02)
+g = Activators('lrelu', beta=0.1)
+criterion = Losses('ssr')
+optim = Optimizers('adam', alpha=1e-02)
 
 # data
 data = [[[0, 0]], [[0, 1]], [[1, 0]], [[1, 1]]]

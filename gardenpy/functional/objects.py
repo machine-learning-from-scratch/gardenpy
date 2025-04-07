@@ -894,7 +894,7 @@ class Matrix(_Tensor):
                 )
 
             # calculate result
-            result = Matrix(self._forward(main=main_val, other=other_val))
+            result = Matrix(self._forward(main_val, other_val))
             result._tracker['origin'] = [main, other]
             if isinstance(main, Matrix):
                 # track main
@@ -968,7 +968,7 @@ class Matrix(_Tensor):
                     f"Received type {type(main)}."
                 )
             # calculate result
-            result = Matrix(self._forward(main=main_val))
+            result = Matrix(self._forward(main_val))
             result._tracker['origin'] = [main, None]
             if isinstance(main, Matrix):
                 # track main

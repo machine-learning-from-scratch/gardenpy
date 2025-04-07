@@ -9,7 +9,7 @@ from typing import Optional
 from abc import ABC, abstractmethod
 
 # from ..functional.objects import Tensor
-from ..functional.algorithms import Losses, Optimizers
+# from ..functional.algorithms import Losses, Optimizers
 
 
 class _NN(ABC):
