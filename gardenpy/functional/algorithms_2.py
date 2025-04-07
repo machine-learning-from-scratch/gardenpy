@@ -31,7 +31,7 @@ class _Algorithm(ABC):
     _rng = np.random.default_rng()
     # internals
     _methods: list[str] = []
-    _default_hyperparameters: dict[Params] | None = None
+    _hyperparameters: dict[str, Params] | None = None
 
     def __init__(self, method: str, *, hyperparameters: dict[str, any], **kwargs: any):
         # internal setup
@@ -58,7 +58,7 @@ class _Algorithm(ABC):
         # set checker
         checker = ParamChecker(
             prefix=f'{method} hyperparameters',
-            parameters=cls._default_hyperparams[method],
+            parameters=cls._hyperparameters[method],
             ikwiad=_Algorithm._ikwiad
         )
 
@@ -85,3 +85,7 @@ class _Algorithm(ABC):
         # set ikwiad
         _Algorithm._ikwiad = bool(ikwiad)
         return None
+
+    @abstractmethod
+    def __call__(self, *args, **kwargs):
+        pass

@@ -5,7 +5,6 @@ Contains:
     - :class:`Params`
     - :class:`ParamChecker`
 """
-# todo: check logic (might need deepcopy?)
 
 from copy import deepcopy
 from types import LambdaType
@@ -26,9 +25,9 @@ class Params:
             ctypes: dict[str, callable] | None = None
     ):
         r"""
-        **Set parameter settings for a class instance**
+        **Set parameter settings for a class instance.**
 
-        Args:
+        Parameters:
             default (dict | None), default = None: Default values.
             dtypes (dict | None), default = None: Accepted datatypes.
             vtypes (dict | None), default = None: Accepted value types.
@@ -54,7 +53,7 @@ class Params:
     def _check_type(itm):
         if itm is not None and not isinstance(itm, dict):
             # check itm
-            raise TypeError("Each parameter item must be None or a dictionary")
+            raise TypeError("Invalid type: Each parameter item must be None or a dictionary")
         # return itm
         return itm
 
@@ -67,7 +66,7 @@ class Params:
                 isinstance(default, dict) and
                 not all([isinstance(itm, (int, float, str, bool)) for itm in default.values()])
         ):
-            raise TypeError("Attempted creating default values with invalid types.")
+            raise TypeError("Invalid type: Attempted creating default values with invalid types.")
         # return default
         return default
 
@@ -80,7 +79,7 @@ class Params:
                 isinstance(dtypes, dict) and
                 not all([itm is not callable for itm in dtypes.values()])
         ):
-            raise TypeError("Attempted creating datatypes with invalid types.")
+            raise TypeError("Invalid type: Attempted creating datatypes with invalid types.")
         # return dtypes
         return dtypes
 
@@ -93,7 +92,7 @@ class Params:
                 isinstance(vtypes, dict) and
                 not all([isinstance(itm, LambdaType) for itm in vtypes.values()])
         ):
-            raise TypeError("Attempted creating value types with invalid types.")
+            raise TypeError("Invalid type: Attempted creating value types with invalid types.")
         # return vtypes
         return vtypes
 
@@ -106,7 +105,7 @@ class Params:
                 isinstance(ctypes, dict) and
                 not all([isinstance(itm, LambdaType) for itm in ctypes.values()])
         ):
-            raise TypeError("Attempted creating conversion types with invalid types.")
+            raise TypeError("Invalid type: Attempted creating conversion types with invalid types.")
         # return ctypes
         return ctypes
 
@@ -120,7 +119,7 @@ class Params:
         Returns:
             dict: Default values.
         """
-        return self._default
+        return deepcopy(self._default)
 
     @property
     def dtypes(self) -> dict[str, any] | None:
@@ -132,7 +131,7 @@ class Params:
         Returns:
             dict: Accepted data types.
         """
-        return self._dtypes
+        return deepcopy(self._dtypes)
 
     @property
     def vtypes(self) -> dict[str, callable] | None:
@@ -144,7 +143,7 @@ class Params:
         Returns:
             dict: Conversion types.
         """
-        return self._vtypes
+        return deepcopy(self._vtypes)
 
     @property
     def ctypes(self) -> dict[str, callable] | None:
@@ -156,7 +155,7 @@ class Params:
         Returns:
             dict: Conversion types.
         """
-        return self._ctypes
+        return deepcopy(self._ctypes)
 
 
 class ParamChecker:
@@ -191,7 +190,7 @@ class ParamChecker:
         Returns:
             Params: Internal parameter settings.
         """
-        return self._params
+        return deepcopy(self._params)
 
     def _validate_dict(
             self,
@@ -202,17 +201,17 @@ class ParamChecker:
     ) -> None:
         # validate dictionary
         if not isinstance(param_dict, dict):
-            raise TypeError(f"'{name}' in {self._prefix} must be a dict")
+            raise TypeError(f"Invalid type: {name} in {self._prefix} must be a dict")
         for key, value in param_dict.items():
             if check_lambda and not isinstance(value, LambdaType):
-                raise TypeError(f"Invalid lambda in '{name}' in {self._prefix}: {key} -> {value}")
+                raise TypeError(f"Invalid type: Invalid lambda in {name} in {self._prefix}: {key}: {value}")
             if check_callable and callable(value):
-                raise TypeError(f"Callable not allowed in '{name}' in {self._prefix}: {key} -> {value}")
+                raise TypeError(f"Invalid type: Callable not allowed in '{name}' in {self._prefix}: {key}: {value}")
         return None
 
     def _validate_params(self, params: Params) -> Params:
         if not isinstance(params, Params):
-            raise TypeError("'params' must be Params")
+            raise TypeError(f"Invalid type: Fed in parameters must be Params. Received type {type(params)}.")
 
         if params.default is None:
             # default none
@@ -228,7 +227,7 @@ class ParamChecker:
         # check for key matching
         keys = [params.default.keys(), params.dtypes.keys(), params.vtypes.keys(), params.ctypes.keys()]
         if not all(k == keys[0] for k in keys):
-            raise ValueError(f"Keys don't match for '{self._prefix}'")
+            raise ValueError(f"Invalid keys: Keys don't match for {self._prefix}")
 
         return params
 
@@ -255,7 +254,7 @@ class ParamChecker:
             return None
 
         # initialize as default
-        final = self._params.default.copy()
+        final = deepcopy(self._params.default)
 
         if params is None and kwargs is None:
             # return default
@@ -263,7 +262,10 @@ class ParamChecker:
 
         # set params
         if params and not isinstance(params, dict):
-            raise TypeError(f"'params' in {self._prefix} must be a dictionary")
+            raise TypeError(
+                f"Invalid type: parameters in {self._prefix} must be a dictionary."
+                f"Received type {type(params)}"
+            )
         params = params if params else {}
         if kwargs:
             params.update(kwargs)
@@ -272,8 +274,8 @@ class ParamChecker:
             if key not in self._params.default and self._ikwiad:
                 # invalid key and warning
                 warn(
-                    f"\nInvalid parameter for '{self._prefix}': '{key}'\n"
-                    f"Choose from: '{[pos for pos in self._params.default]}'",
+                    f"Invalid parameter for {self._prefix}: {key} "
+                    f"Choose from: {[pos for pos in self._params.default]}",
                     UserWarning
                 )
                 continue
@@ -284,13 +286,13 @@ class ParamChecker:
             # datatype check
             if not isinstance(prm, self._params.dtypes[key]):
                 raise ValueError(
-                    f"Invalid datatype for '{self._prefix}' '{key}': '{prm}'\n"
-                    f"Choose from: {self._params.dtypes[key]}"
+                    f"Invalid datatype: Invalid datatype for {self._prefix} {key}: {prm} "
+                    f"Choose from: {self._params.dtypes[key]}."
                 )
             if not self._params.vtypes[key](prm):
                 raise ValueError(
-                    f"Invalid value for '{self._prefix}' '{key}': '{prm}'\n"
-                    f"Failed conditional: {self._params.vtypes[key]}"
+                    f"Invalid value: Invalid value for {self._prefix} {key}: {prm} "
+                    f"Failed conditional: {self._params.vtypes[key]}."
                 )
             # set parameter
             final[key] = self._params.ctypes[key](prm)
