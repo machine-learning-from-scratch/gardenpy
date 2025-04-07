@@ -385,14 +385,14 @@ class _Tensor(ABC):
         Parameters:
             *args (Tensor | str): Tensors to save.
 
-        Note:
-            If 'retain' is in a Tensor's tags, the Tensor will be automatically saved.
-            To delete this Tensor, either reset it using :func:`_Tensor.instance_reset` or remove 'retain'.
-
         Raises:
             UserWarning: The function is used to reference a deleted Tensor.
                 Turned off by toggling ikwiad.
                 See :func:`_Tensor.ikwiad`.
+
+        Note:
+            If 'retain' is in a Tensor's tags, the Tensor will be automatically saved.
+            To delete this Tensor, either reset it using :func:`_Tensor.instance_reset` or remove 'retain'.
         """
         # saved tensors
         args = list(args)
@@ -522,7 +522,7 @@ class _Tensor(ABC):
             self._tracker[key] = []
         return None
 
-    def _unpack_ids(self, itm: T | list | property | None) -> list | str | float | int | None:
+    def _unpack_ids(self, itm: T | list | property | None) -> list | str | float | None:
         if isinstance(itm, _Tensor):
             # id reference
             return itm.id
@@ -530,7 +530,7 @@ class _Tensor(ABC):
             # function call
             return [self._unpack_ids(it) for it in itm]
         else:
-            if itm is None or isinstance(itm, (float, int)):
+            if itm is None or isinstance(itm, float):
                 # raw item
                 return itm
             else:
@@ -788,97 +788,97 @@ class Matrix(_Tensor):
     class _PairedBaseMethod(_MethodCollection, ABC):
         @staticmethod
         @abstractmethod
-        def forward(main: NDArray | float | int, other: NDArray | float | int) -> NDArray:
+        def forward(main: NDArray | float , other: NDArray | float) -> NDArray:
             r"""
             **Forward method.**
 
             Parameters:
-                main (NDArray | float | int): Main object.
-                other (NDArray | float | int): Other object.
-
-            Note:
-                Main or other object can be a non-array type, but one object must be an array.
+                main (NDArray | float): Main object.
+                other (NDArray | float): Other object.
 
             Returns:
                 NDArray: Result.
+
+            Note:
+                Main or other object can be a non-array type, but one object must be an array.
             """
             pass
 
         @staticmethod
         @abstractmethod
-        def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
+        def backward(main: NDArray, other: NDArray | float) -> NDArray:
             r"""
             **Backward method.**
 
             Parameters:
                 main (NDArray): Main object.
-                other (NDArray | float | int): Other object.
-
-            Note:
-                Main array must be an array type, but Other object can be a non-array type.
+                other (NDArray | float): Other object.
 
             Returns:
                 NDArray: Result.
+
+            Note:
+                Main array must be an array type, but Other object can be a non-array type.
             """
             pass
 
         @staticmethod
         @abstractmethod
-        def other_backward(main: NDArray | float | int, other: NDArray) -> NDArray:
+        def other_backward(main: NDArray | float, other: NDArray) -> NDArray:
             r"""
             **Backward method.**
 
             Parameters:
-                main (NDArray | float | int): Main object.
+                main (NDArray | float): Main object.
                 other (NDArray): Other object.
-
-            Note:
-                Other array must be an array type, but Main object can be a non-array type.
 
             Returns:
                 NDArray: Result.
+
+            Note:
+                Other array must be an array type, but Main object can be a non-array type.
             """
             pass
 
         @staticmethod
         @abstractmethod
-        def _forward(main: NDArray | float | int, other: NDArray | float | int) -> NDArray:
+        def _forward(main: NDArray | float, other: NDArray | float) -> NDArray:
             pass
 
         @staticmethod
         @abstractmethod
-        def _backward(main: NDArray, other: NDArray | float | int) -> NDArray:
+        def _backward(main: NDArray, other: NDArray | float) -> NDArray:
             pass
 
         @staticmethod
         @abstractmethod
-        def _other_backward(main: NDArray | float | int, other: NDArray) -> NDArray:
+        def _other_backward(main: NDArray | float, other: NDArray) -> NDArray:
             pass
 
-        def main(self, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
+        def main(self, main: Matrix | NDArray | float, other: Matrix | NDArray | float) -> Matrix:
             r"""
             **Main function call.**
 
             Utilizes auto-differentiation algorithms if applicable.
 
             Parameters:
-                main (Matrix | NDArray | float | int): Main object.
-                other (Matrix | NDArray | float | int): Other object.
-
-            Note:
-                Main or other object can be a non-array type, but one object must be an array.
+                main (Matrix | NDArray | float): Main object.
+                other (Matrix | NDArray | float): Other object.
 
             Returns:
                 Matrix: Result Matrix.
+
+            Note:
+                Main or other object can be a non-array type, but one object must be an array.
             """
             # set main matrix
             if isinstance(main, Matrix) and Matrix._is_valid_tensor(itm=main):
                 main_val = main._tensor
-            elif isinstance(main, (np.ndarray, float, int)):
+            elif isinstance(main, (np.ndarray, float)):
                 main_val = main
             else:
                 raise TypeError(
-                    f"Invalid type: Main object expected valid type Matrix, NumPy array, float, or integer. "
+                    f"Invalid type: Main object expected valid type Matrix, NumPy array, or number. "
                     f"This method can be run with the Gradient if func:`reduce_grad` is used to convert "
                     f"the Gradient into a Matrix. "
                     f"Received type {type(main)}."
@@ -887,11 +887,11 @@ class Matrix(_Tensor):
             # set other matrix
             if isinstance(other, Matrix) and Matrix._is_valid_tensor(itm=main):
                 other_val = other._tensor
-            elif isinstance(other, (np.ndarray, float, int)):
+            elif isinstance(other, (np.ndarray, float)):
                 other_val = other
             else:
                 raise TypeError(
-                    f"Invalid type: Other object expected valid type Matrix, NumPy array, float, or integer. "
+                    f"Invalid type: Other object expected valid type Matrix, NumPy array, or number. "
                     f"This method can be run with the Gradient if func:`reduce_grad` is used to convert "
                     f"the Gradient into a Matrix. "
                     f"Received type {type(other)}."
@@ -962,7 +962,7 @@ class Matrix(_Tensor):
             # set main matrix
             if isinstance(main, Matrix) and Matrix._is_valid_tensor(itm=main):
                 main_val = main._tensor
-            elif isinstance(main, (np.ndarray, float, int)):
+            elif isinstance(main, (np.ndarray, float)):
                 main_val = main
             else:
                 raise TypeError(
@@ -989,7 +989,7 @@ class Matrix(_Tensor):
         """
         @staticmethod
         @abstractmethod
-        def forward(main: NDArray | float | int, other: NDArray | float | int) -> NDArray:
+        def forward(main: NDArray | float, other: NDArray | float) -> NDArray:
             raise NotImplementedError(
                 "Missing implementation: "
                 "Forward method wasn't implemented and is required for this method type."
@@ -997,7 +997,7 @@ class Matrix(_Tensor):
 
         @staticmethod
         @abstractmethod
-        def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
+        def backward(main: NDArray, other: NDArray | float) -> NDArray:
             raise NotImplementedError(
                 "Missing implementation: "
                 "Backward method wasn't implemented and is required for this method type."
@@ -1005,14 +1005,14 @@ class Matrix(_Tensor):
 
         @staticmethod
         @abstractmethod
-        def other_backward(main: NDArray | float | int, other: NDArray) -> NDArray:
+        def other_backward(main: NDArray | float, other: NDArray) -> NDArray:
             raise NotImplementedError(
                 "Missing implementation: "
                 "Other backward method wasn't implemented and is required for this method type."
             )
 
         @classmethod
-        def _forward(cls, main: NDArray | float | int, other: NDArray | float | int) -> NDArray:
+        def _forward(cls, main: NDArray | float, other: NDArray | float) -> NDArray:
             # check input
             cls._ndim(obj=main, ndim=2, force_arr=False)
             cls._ndim(obj=other, ndim=2, force_arr=False)
@@ -1027,7 +1027,7 @@ class Matrix(_Tensor):
             return result
 
         @classmethod
-        def _backward(cls, main: NDArray, other: NDArray | float | int) -> NDArray:
+        def _backward(cls, main: NDArray, other: NDArray | float) -> NDArray:
             # check input
             cls._num_arr(main, force_arr=True)
             # backward method call
@@ -1038,7 +1038,7 @@ class Matrix(_Tensor):
             return cls._elementwise_broadcast(two_grad=result)
 
         @classmethod
-        def _other_backward(cls, main: NDArray | float | int, other: NDArray) -> NDArray:
+        def _other_backward(cls, main: NDArray | float, other: NDArray) -> NDArray:
             # check input
             cls._num_arr(other, force_arr=True)
             # other backward method call
@@ -1219,7 +1219,7 @@ class Matrix(_Tensor):
         """
         @staticmethod
         @abstractmethod
-        def forward(main: NDArray | float | int, other: NDArray | float | int) -> NDArray:
+        def forward(main: NDArray | float, other: NDArray | float) -> NDArray:
             raise NotImplementedError(
                 "Missing implementation: "
                 "Forward method wasn't implemented and is required for this method type."
@@ -1227,7 +1227,7 @@ class Matrix(_Tensor):
 
         @staticmethod
         @abstractmethod
-        def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
+        def backward(main: NDArray, other: NDArray | float) -> NDArray:
             raise NotImplementedError(
                 "Missing implementation: "
                 "Backward method wasn't implemented and is required for this method type."
@@ -1235,14 +1235,14 @@ class Matrix(_Tensor):
 
         @staticmethod
         @abstractmethod
-        def other_backward(main: NDArray | float | int, other: NDArray) -> NDArray:
+        def other_backward(main: NDArray | float, other: NDArray) -> NDArray:
             raise NotImplementedError(
                 "Missing implementation: "
                 "Other backward method wasn't implemented and is required for this method type."
             )
 
         @classmethod
-        def _forward(cls, main: NDArray | float | int, other: NDArray | float | int) -> NDArray:
+        def _forward(cls, main: NDArray | float, other: NDArray | float) -> NDArray:
             # check input
             cls._ndim(obj=main, ndim=2, force_arr=False)
             cls._ndim(obj=other, ndim=2, force_arr=False)
@@ -1256,7 +1256,7 @@ class Matrix(_Tensor):
             return result
 
         @classmethod
-        def _backward(cls, main: NDArray, other: NDArray | float | int) -> NDArray:
+        def _backward(cls, main: NDArray, other: NDArray | float) -> NDArray:
             # check input
             cls._num_arr(main, force_arr=True)
             # backward method call
@@ -1267,7 +1267,7 @@ class Matrix(_Tensor):
             return result
 
         @classmethod
-        def _other_backward(cls, main: NDArray | float | int, other: NDArray) -> NDArray:
+        def _other_backward(cls, main: NDArray | float, other: NDArray) -> NDArray:
             # check input
             cls._num_arr(other, force_arr=True)
             # other backward method call
@@ -1343,73 +1343,73 @@ class Matrix(_Tensor):
 
     class _Pow(ElementWiseMethod):
         @staticmethod
-        def forward(main: NDArray | float | int, other: NDArray | float | int) -> NDArray:
+        def forward(main: NDArray | float, other: NDArray | float) -> NDArray:
             return main ** other
 
         @staticmethod
         @inf_remove(inf_val=1e10)
-        def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
+        def backward(main: NDArray, other: NDArray | float) -> NDArray:
             two_grad = other * (main ** (other - 1.0))
             return two_grad
 
         @staticmethod
         @inf_remove(inf_val=1e10)
-        def other_backward(main: NDArray | float | int, other: NDArray) -> NDArray:
+        def other_backward(main: NDArray | float, other: NDArray) -> NDArray:
             two_grad = np.log(main) * (main ** other)
             return two_grad
 
     class _Mul(ElementWiseMethod):
         @staticmethod
-        def forward(main: NDArray | float | int, other: NDArray | float | int) -> NDArray:
+        def forward(main: NDArray | float, other: NDArray | float) -> NDArray:
             return main * other
 
         @staticmethod
-        def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
+        def backward(main: NDArray, other: NDArray | float) -> NDArray:
             return other
 
         @staticmethod
-        def other_backward(main: NDArray | float | int, other: NDArray) -> NDArray:
+        def other_backward(main: NDArray | float, other: NDArray) -> NDArray:
             return main
 
     class _TrueDiv(ElementWiseMethod):
         @staticmethod
-        def forward(main: NDArray | float | int, other: NDArray | float | int) -> NDArray:
+        def forward(main: NDArray | float, other: NDArray | float) -> NDArray:
             return main / other
 
         @staticmethod
         @inf_remove(inf_val=1e10)
-        def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
+        def backward(main: NDArray, other: NDArray | float) -> NDArray:
             return other ** -1.0
 
         @staticmethod
         @inf_remove(inf_val=1e10)
-        def other_backward(main: NDArray | float | int, other: NDArray) -> NDArray:
+        def other_backward(main: NDArray | float, other: NDArray) -> NDArray:
             return -main / other ** 2.0
 
     class _Add(ElementWiseMethod):
         @staticmethod
-        def forward(main: NDArray | float | int, other: NDArray | float | int) -> NDArray:
+        def forward(main: NDArray | float, other: NDArray | float) -> NDArray:
             return main + other
 
         @staticmethod
-        def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
+        def backward(main: NDArray, other: NDArray | float) -> NDArray:
             return np.ones(main.shape)
 
         @staticmethod
-        def other_backward(main: NDArray | float | int, other: NDArray) -> NDArray:
+        def other_backward(main: NDArray | float, other: NDArray) -> NDArray:
             return np.ones(other.shape)
 
     class _Sub(ElementWiseMethod):
         @staticmethod
-        def forward(main: NDArray | float | int, other: NDArray | float | int) -> NDArray:
+        def forward(main: NDArray | float, other: NDArray | float) -> NDArray:
             return main - other
 
         @staticmethod
-        def backward(main: NDArray, other: NDArray | float | int) -> NDArray:
+        def backward(main: NDArray, other: NDArray | float) -> NDArray:
             return np.ones(main.shape)
 
         @staticmethod
-        def other_backward(main: NDArray | float | int, other: NDArray) -> NDArray:
+        def other_backward(main: NDArray | float, other: NDArray) -> NDArray:
             return -np.ones(other.shape)
 
     # internal instance
@@ -1432,27 +1432,27 @@ class Matrix(_Tensor):
         return cls._matmul.main(main=main, other=other)
 
     @classmethod
-    def rpow(cls, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
+    def rpow(cls, main: Matrix | NDArray | float, other: Matrix | NDArray | float) -> Matrix:
         r"""Raw Hadamard power."""
         return cls._pow.main(main=main, other=other)
 
     @classmethod
-    def rmul(cls, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
+    def rmul(cls, main: Matrix | NDArray | float, other: Matrix | NDArray | float) -> Matrix:
         r"""Raw Hadamard multiplication."""
         return cls._mul.main(main=main, other=other)
 
     @classmethod
-    def rtruediv(cls, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
+    def rtruediv(cls, main: Matrix | NDArray | float, other: Matrix | NDArray | float) -> Matrix:
         r"""Raw Hadamard division."""
         return cls._truediv.main(main=main, other=other)
 
     @classmethod
-    def radd(cls, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
+    def radd(cls, main: Matrix | NDArray | float, other: Matrix | NDArray | float) -> Matrix:
         r"""Raw addition."""
         return cls._add.main(main=main, other=other)
 
     @classmethod
-    def rsub(cls, main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
+    def rsub(cls, main: Matrix | NDArray | float, other: Matrix | NDArray | float) -> Matrix:
         r"""Raw subtraction."""
         return cls._sub.main(main=main, other=other)
 
@@ -1465,43 +1465,43 @@ class Matrix(_Tensor):
         r"""**Other matrix multiplication.**"""
         return self._matmul.main(main=other, other=self)
 
-    def __pow__(self, other: Matrix | NDArray | float | int) -> Matrix:
+    def __pow__(self, other: Matrix | NDArray | float) -> Matrix:
         r"""**Hadamard power.**"""
         return self._pow.main(main=self, other=other)
 
-    def __rpow__(self, other: Matrix | NDArray | float | int) -> Matrix:
+    def __rpow__(self, other: Matrix | NDArray | float) -> Matrix:
         r"""**Other Hadamard power.**"""
         return self._pow.main(main=other, other=self)
 
-    def __mul__(self, other: Matrix | NDArray | float | int) -> Matrix:
+    def __mul__(self, other: Matrix | NDArray | float) -> Matrix:
         r"""**Hadamard multiplication.**"""
         return self._mul.main(main=self, other=other)
 
-    def __rmul__(self, other: Matrix | NDArray | float | int) -> Matrix:
+    def __rmul__(self, other: Matrix | NDArray | float) -> Matrix:
         r"""**Other Hadamard multiplication.**"""
         return self._mul.main(main=other, other=self)
 
-    def __truediv__(self, other: Matrix | NDArray | float | int) -> Matrix:
+    def __truediv__(self, other: Matrix | NDArray | float) -> Matrix:
         r"""**Hadamard division.**"""
         return self._truediv.main(main=self, other=other)
 
-    def __rtruediv__(self, other: Matrix | NDArray | float | int) -> Matrix:
+    def __rtruediv__(self, other: Matrix | NDArray | float) -> Matrix:
         r"""**Other Hadamard division.**"""
         return self._truediv.main(main=other, other=self)
 
-    def __add__(self, other: Matrix | NDArray | float | int) -> Matrix:
+    def __add__(self, other: Matrix | NDArray | float) -> Matrix:
         r"""**Addition.**"""
         return self._add.main(main=self, other=other)
 
-    def __radd__(self, other: Matrix | NDArray | float | int) -> Matrix:
+    def __radd__(self, other: Matrix | NDArray | float) -> Matrix:
         r"""**Other addition.**"""
         return self._add.main(main=other, other=self)
 
-    def __sub__(self, other: Matrix | NDArray | float | int) -> Matrix:
+    def __sub__(self, other: Matrix | NDArray | float) -> Matrix:
         r"""**Subtraction.**"""
         return self._sub.main(main=self, other=other)
 
-    def __rsub__(self, other: Matrix | NDArray | float | int) -> Matrix:
+    def __rsub__(self, other: Matrix | NDArray | float) -> Matrix:
         r"""**Other subtraction.**"""
         return self._sub.main(main=other, other=self)
 

@@ -11,6 +11,7 @@ Contains:
 """
 
 from abc import ABC, abstractmethod
+from copy import deepcopy
 import numpy as np
 from numpy.typing import NDArray
 
@@ -43,8 +44,8 @@ class _Algorithm(ABC):
         self._set_method()
 
     @classmethod
-    def methods(cls) -> list:
-        return cls._methods
+    def methods(cls) -> list[str]:
+        return cls._methods.copy()
 
     @classmethod
     def _get_method(cls, method: str, hyperparameters: dict[str, any], **kwargs):
@@ -67,7 +68,7 @@ class _Algorithm(ABC):
 
     @abstractmethod
     def _set_method(self):
-        ...
+        pass
 
     @classmethod
     def ikwiad(cls, ikwiad: bool | None = None) -> None:
@@ -89,3 +90,100 @@ class _Algorithm(ABC):
     @abstractmethod
     def __call__(self, *args, **kwargs):
         pass
+
+
+class Initializer(_Algorithm):
+    _methods: list[str] = [
+        'kaiming',
+        'xavier',
+        'gaussian',
+        'uniform'
+    ]
+    _hyperparameters: dict[str, Params] = {
+            'kaiming': Params(
+                default={
+                    'beta': 0.0,
+                    'mu': 0.0,
+                    'sigma': 1.0,
+                    'kappa': 1.0
+                },
+                dtypes={
+                    'beta': float,
+                    'mu': float,
+                    'sigma': float,
+                    'kappa': float
+                },
+                vtypes={'beta': lambda x: 0 <= x, 'mu': lambda x: True, 'sigma': lambda x: 0 < x, 'kappa': lambda x: True},
+                ctypes={'beta': lambda x: float(x), 'mu': lambda x: float(x), 'sigma': lambda x: float(x), 'kappa': lambda x: float(x)}
+            ),
+            'xavier': Params(
+                default={'mu': 0.0, 'sigma': 1.0, 'kappa': 1.0},
+                dtypes={'mu': (float, int), 'sigma': (float, int), 'kappa': (float, int)},
+                vtypes={'mu': lambda x: True, 'sigma': lambda x: 0 < x, 'kappa': lambda x: True},
+                ctypes={'mu': lambda x: float(x), 'sigma': lambda x: float(x), 'kappa': lambda x: float(x)}
+            ),
+            'gaussian': Params(
+                default={'mu': 0.0, 'sigma': 1.0, 'kappa': 1.0},
+                dtypes={'mu': (float, int), 'sigma': (float, int), 'kappa': (float, int)},
+                vtypes={'mu': lambda x: True, 'sigma': lambda x: 0 < x, 'kappa': lambda x: True},
+                ctypes={'mu': lambda x: float(x), 'sigma': lambda x: float(x), 'kappa': lambda x: float(x)}
+            ),
+            'uniform': Params(
+                default={'kappa': 1.0},
+                dtypes={'kappa': float},
+                vtypes={'kappa': lambda x: True},
+                ctypes={'kappa': lambda x: float(x)}
+            )
+        }
+
+    def __init__(self, method: str, *, hyperparameters: dict[str, any], **kwargs: any):
+        super().__init__(method=method, hyperparameters=hyperparameters, **kwargs)
+
+    def _set_method(self):
+        # hyperparameter reference
+        if self._hyperparameters is not None:
+            h = deepcopy(self.__class__._hyperparameters[self._method])
+
+        def initializer_method(func: callable) -> callable:
+            def wrapper(*args: int) -> Matrix:
+                # check dimensionality
+                if len(args) != 2:
+                    raise ValueError("Attempted initialization with more than two dimensions.")
+                if not all(isinstance(arg, int) and 0 < arg for arg in args):
+                    raise ValueError("Attempted initialization with dimensions that weren't positive integers.")
+                # initialize tensor
+                return Matrix(func(*args))
+
+            return wrapper
+
+        @initializer_method
+        def kaiming(*args: int) -> NDArray:
+            ...
+
+        @initializer_method
+        def xavier(*args: int) -> NDArray:
+            # xavier method
+            return (
+                h['kappa'] *
+                np.sqrt(2.0 / float(args[-2] + args[-1])) *
+                _Algorithm._rng.normal(loc=h['mu'], scale=h['sigma'], size=args)
+            )
+
+        @initializer_method
+        def gaussian(*args: int) -> NDArray:
+            # gaussian method
+            return h['kappa'] * _Algorithm._rng.normal(loc=h['mu'], scale=h['sigma'], size=args)
+
+        @initializer_method
+        def uniform(*args: int) -> NDArray:
+            # uniform method
+            return h['kappa'] * np.ones(args, dtype=np.float64)
+
+        # function reference
+        inits = {
+            'xavier': xavier,
+            'gaussian': gaussian,
+            'uniform': uniform
+        }
+        # get function
+        self._init = inits[self._method]

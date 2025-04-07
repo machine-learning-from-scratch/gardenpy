@@ -19,7 +19,7 @@ class Params:
     """
     def __init__(
             self,
-            default: dict[str, int | float | str | bool] | None = None,
+            default: dict[str, float | str | bool] | None = None,
             dtypes: dict[str, any] | None = None,
             vtypes: dict[str, callable] | None = None,
             ctypes: dict[str, callable] | None = None
@@ -64,7 +64,7 @@ class Params:
         # check default
         if (
                 isinstance(default, dict) and
-                not all([isinstance(itm, (int, float, str, bool)) for itm in default.values()])
+                not all([isinstance(itm, (float, str, bool)) for itm in default.values()])
         ):
             raise TypeError("Invalid type: Attempted creating default values with invalid types.")
         # return default
@@ -110,7 +110,7 @@ class Params:
         return ctypes
 
     @property
-    def default(self) -> dict[str, int | float | str | bool] | None:
+    def default(self) -> dict[str, float | str | bool] | None:
         r"""
         **Default values.**
 
