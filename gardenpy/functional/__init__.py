@@ -11,9 +11,9 @@ Contains:
     - :func:`matrix`
     - :func:`nabla`
     - :func:`chain`
+    - :func:`replace`
     - :func:`zero_grad`
     - :func:`add_tags`
-    - :func:`replace`
     - :class:`Initializer`
     - :class:`Activator`
     - :class:`Criterion`
@@ -29,9 +29,9 @@ from .operators import (
     matrix,
     nabla,
     chain,
+    replace,
     zero_grad,
-    add_tags,
-    replace
+    add_tags
 )
 from .algorithms import (
     Initializer,
@@ -47,8 +47,8 @@ __all__ = [
     'matrix',
     'nabla',
     'chain',
-    'zero_grad',
     'replace',
+    'zero_grad',
     'add_tags',
     'Initializer',
     'Activator',
