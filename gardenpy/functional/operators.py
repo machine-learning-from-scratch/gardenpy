@@ -94,8 +94,8 @@ def add_tags(items: list[Matrix | Gradient], tags: list[str | list[str]]) -> Non
     **Adds tags to multiple objects at once.**
 
     Parameters:
-        items (list): Items to add tags to.
-        tags (list): Tags.
+        items (list[Matrix | Gradient]): Items to add tags to.
+        tags (list[str | list[str]]): Tags.
 
     Raises:
         TypeError: Invalid items or tags.

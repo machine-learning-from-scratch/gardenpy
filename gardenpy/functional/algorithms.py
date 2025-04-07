@@ -375,8 +375,8 @@ class Activator(_Algorithm):
 
             @staticmethod
             def backward(x: NDArray) -> NDArray:
-                # todo: finish this algorithm (lower priority)
-                raise NotImplementedError("Currently mathematically deriving.")
+                # TODO: Fully implement softmax.
+                raise NotImplementedError("Algorithm not implemented: Currently mathematically deriving.")
 
         class _ReLU(Matrix.LoneElementWiseMethod):
             # relu
@@ -583,11 +583,9 @@ class Criterion(_Algorithm):
                 return -y / yhat
 
             @staticmethod
-            def other_backward(yhat: any, y: any):
-                raise NotImplementedError(
-                    "Undefined defined method: "
-                    "Backward method was intentionally left undefined for this algorithm."
-                )
+            @inf_remove(inf_val=1e10)
+            def other_backward(yhat: NDArray, y: NDArray) -> NDArray:
+                return -np.log(yhat)
 
         class _SumOfSquaredResiduals(Matrix.ScalarMethod):
             # ssr
@@ -600,11 +598,8 @@ class Criterion(_Algorithm):
                 return -2.0 * (y - yhat)
 
             @staticmethod
-            def other_backward(yhat: any, y: any):
-                raise NotImplementedError(
-                    "Undefined defined method: "
-                    "Backward method was intentionally left undefined for this algorithm."
-                )
+            def other_backward(yhat: NDArray, y: NDArray) -> NDArray:
+                return 2.0 * (y - yhat)
 
         class _SumOfAbsoluteValueResiduals(Matrix.ScalarMethod):
             # savr
@@ -617,11 +612,8 @@ class Criterion(_Algorithm):
                 return -np.sign(y - yhat)
 
             @staticmethod
-            def other_backward(yhat: any, y: any):
-                raise NotImplementedError(
-                    "Undefined defined method: "
-                    "Backward method was intentionally left undefined for this algorithm."
-                )
+            def other_backward(yhat: NDArray, y: NDArray) -> NDArray:
+                return np.sign(y - yhat)
 
         # algorithm reference
         algs = {

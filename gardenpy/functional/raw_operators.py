@@ -2,12 +2,12 @@ import numpy as np
 from numpy.typing import NDArray
 
 
-def inf_remove(*, inf_val: float | int = 1e10) -> callable:
+def inf_remove(inf_val: float = 1e10) -> callable:
     r"""
     **Replaces infinity with a finite value.
 
     Parameters:
-        inf_val: Replaced infinity value.
+        inf_val (float), default = 1e10: Replaced infinity value.
 
     Returns:
         callable: Callable function
