@@ -21,7 +21,7 @@ class TrackingError(Exception):
         Parameters:
             grad (any): First item relating to the tracking error.
             wrt (any): Second item relating to the tracking error.
-            message (str, optional): Error message.
+            message (str | None): Error message.
 
         Note:
             A built-in error message reports common information about the tracking error if no message is given.
