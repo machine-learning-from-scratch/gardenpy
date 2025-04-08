@@ -5,17 +5,21 @@ Contains:
     - class`DataLoader`
 """
 
-from typing import Union, Generator, Tuple
+from __future__ import annotations
+from typing import TYPE_CHECKING, Generator
 import numpy as np
+from numpy.typing import NDArray
 
-# from ..functional.objects import Tensor  # this breaks?
+if TYPE_CHECKING:
+    # lazy import
+    from ..functional.objects import Matrix
 
 
 class DataLoader:
     def __init__(
             self,
-            data: Union[np.ndarray, list],
-            labels: Union[np.ndarray, list],
+            data: NDArray | list,
+            labels: NDArray | list,
             *,
             batch_size: int,
             shuffle: bool = True
@@ -53,7 +57,9 @@ class DataLoader:
         # length
         return (len(self._data) + self._batch_size - 1) // self._batch_size
 
-    def __iter__(self) -> Generator[Tuple[np.ndarray, np.ndarray], None, None]:
+    def __iter__(self) -> Generator[tuple[Matrix, Matrix], None, None]:
+        # matrix lazy import
+        from ..functional.objects import Matrix
         if self._shuffle:
             # shuffle dataloader
             np.random.shuffle(self._indices)
@@ -62,4 +68,4 @@ class DataLoader:
             # iteration
             end_idx = start_idx + self._batch_size
             batch_indices = self._indices[start_idx:end_idx]
-            yield self._data[batch_indices], self._labels[batch_indices]
+            yield Matrix(self._data[batch_indices]), Matrix(self._labels[batch_indices])
