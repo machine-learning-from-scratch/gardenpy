@@ -11,7 +11,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 if TYPE_CHECKING:
-    # lazy import
+    # type checking
     from ..functional.objects import Matrix
 
 
