@@ -784,7 +784,7 @@ class Matrix(_Tensor):
     class _PairedBaseMethod(_MethodCollection, ABC):
         @staticmethod
         @abstractmethod
-        def forward(main: NDArray | float , other: NDArray | float) -> NDArray:
+        def forward(main: NDArray | float, other: NDArray | float) -> NDArray:
             r"""
             **Forward method.**
 
