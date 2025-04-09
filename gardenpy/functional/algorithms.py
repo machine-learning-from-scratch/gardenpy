@@ -904,6 +904,7 @@ class Optimizer(_Algorithm):
         # return memory dictionary
         return memories[self._method]
 
+    # TODO: Allow batch optimization.
     def __call__(self, theta: Matrix | NDArray, nabla: Gradient | NDArray) -> NDArray | None:
         r"""
         **Optimization method call.**
