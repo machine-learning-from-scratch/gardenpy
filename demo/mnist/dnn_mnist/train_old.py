@@ -10,9 +10,9 @@ from gardenpy.metrics import (
     visualization as vis
 )
 from gardenpy.utils import (
-    data_utils as du,
     helpers as hf
 )
+from models import dataloader as du
 
 from _other.deprecated.z_fnn_old import (
     FNN

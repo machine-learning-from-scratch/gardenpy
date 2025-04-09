@@ -1,4 +1,4 @@
-from gardenpy.utils.data_utils import MNISTFNNDataLoader
+from models.dataloader import MNISTFNNDataLoader
 
 dataloader = MNISTFNNDataLoader(
     root=...,

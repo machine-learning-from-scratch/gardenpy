@@ -6,13 +6,11 @@ Contains:
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Generator
+from typing import Generator
 import numpy as np
 from numpy.typing import NDArray
 
-if TYPE_CHECKING:
-    # type checking
-    from ..functional.objects import Matrix
+from ..functional.objects import Matrix
 
 
 class DataLoader:
@@ -59,7 +57,6 @@ class DataLoader:
 
     def __iter__(self) -> Generator[tuple[Matrix, Matrix], None, None]:
         # matrix lazy import
-        from ..functional.objects import Matrix
         if self._shuffle:
             # shuffle dataloader
             np.random.shuffle(self._indices)

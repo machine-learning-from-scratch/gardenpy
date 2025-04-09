@@ -16,7 +16,7 @@ from functional.algorithms import (
 from gardenpy.metrics.raw import (
     cm
 )
-from gardenpy.utils.data_utils import (
+from models.dataloader import (
     shuffle as mix  # todo: why naming?
 )
 

@@ -7,7 +7,6 @@ Contains:
     - :module:`errors`
     - :class:`Params`
     - :class:`ParamChecker`
-    - :class:`DataLoader`
     - :class:`MissingMethodError`
     - :class:`TrackingError`
     - :dict:`ansi`
@@ -19,7 +18,6 @@ from .checkers import (
     Params,
     ParamChecker
 )
-from .data_utils import DataLoader
 from .helpers import (
     ansi,
     progress,
@@ -33,7 +31,6 @@ from .errors import (
 __all__ = [
     'Params',
     'ParamChecker',
-    'DataLoader',
     'ansi',
     'progress',
     'convert_time',
