@@ -28,11 +28,10 @@ from .functional import (
 )
 from .models import (
     DNN,
-    CNN
+    DataLoader
 )
 from .utils import (
-    progress,
-    DataLoader
+    progress
 )
 
 # metadata
@@ -62,7 +61,6 @@ __all__ = [
     'Criterion',
     'Optimizer',
     'DNN',
-    'CNN',
+    'DataLoader',
     'progress',
-    'DataLoader'
 ]

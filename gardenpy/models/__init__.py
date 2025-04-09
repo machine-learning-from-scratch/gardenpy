@@ -1,15 +1,17 @@
 r"""
-**GardenPy pre-built models.**
+**GardenPy models.**
+
+Pre-built models and components.
 
 Contains:
     - :class:`DNN`
-    - :class:`CNN`
+    - :class:`dataloader`
 """
 
 from .dnn import DNN
-from .cnn import CNN
+from .dataloader import DataLoader
 
 __all__ = [
     'DNN',
-    'CNN'
+    'dataloader'
 ]
