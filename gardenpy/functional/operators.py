@@ -1,6 +1,8 @@
 r"""
 **GardenPy operators.**
 
+Convenience operators.
+
 Contains:
     - :func:`tensor`
     - :func:`matmul`

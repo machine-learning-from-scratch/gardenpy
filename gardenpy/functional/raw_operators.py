@@ -1,3 +1,12 @@
+r"""
+**GardenPy raw operators.**
+
+Raw operations meant for generalization.
+
+Contains:
+    - :func:`inf_remove`
+"""
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -16,13 +25,13 @@ def inf_remove(inf_val: float = 1e10) -> callable:
         AssertionError: Invalid inf_val value.
     """
     # check inf_val
-    assert isinstance(inf_val, float | int) and 0 < inf_val, "inf_val must be a positive number."
+    assert isinstance(inf_val, float) and 0 < inf_val, "inf_val must be a positive number."
 
     def decorator(func: callable) -> callable:
         def wrapper(*args: any, **kwargs: any) -> NDArray:
             # forward func
             array = func(*args, **kwargs)
-            assert isinstance(array, np.ndarray)
+            assert isinstance(array, np.ndarray), "Result must be a NDArray."
             # inf to inf_val
             return np.where(np.isposinf(array), inf_val, np.where(np.isneginf(array), -inf_val, array))
 
