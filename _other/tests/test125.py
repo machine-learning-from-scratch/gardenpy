@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 ########################################################################################################################
 
 # training parameters
-epochs = 100_000
+epochs = 10_000
 
 # parameters
 w1 = gp.Initializer('xavier')(2, 4)
