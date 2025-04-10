@@ -905,7 +905,7 @@ class Optimizer(_Algorithm):
         return memories[self._method]
 
     # TODO: Allow batch optimization.
-    def __call__(self, theta: Matrix | NDArray, nabla: Gradient | NDArray) -> NDArray | None:
+    def __call__(self, theta: Matrix | NDArray, nabla: Gradient | NDArray | list[Gradient | NDArray]) -> NDArray | None:
         r"""
         **Optimization method call.**
 
@@ -925,14 +925,24 @@ class Optimizer(_Algorithm):
             NDArrays are supported, but cannot use the correlator.
             If the correlator is on and a non-Matrix object is inputted, the algorithm will error.
         """
-        # nabla handling
+        # gradient handling
         if isinstance(nabla, Gradient):
             # gradient reduction
             nabla = np.sum(nabla.tensor, axis=(0, 1))
+        elif isinstance(nabla, list):
+            for i, itm in enumerate(nabla):
+                if isinstance(itm, Gradient):
+                    nabla[i] = np.sum(itm.tensor, axis=(0, 1))
+                elif not isinstance(itm, np.ndarray):
+                    raise TypeError(
+                        f"Failed object: An invalid object was passed for the nabla collection. "
+                        f"Nabla items must be Gradients or NDArrays. Received invalid item type of {type(itm)}."
+                    )
+            nabla = np.sum(nabla, axis=0)
         elif not isinstance(nabla, np.ndarray):
-            # nabla error
+            # gradient error
             raise TypeError(
-                f"Failed object: An invalid object was passed for nabla. Nabla must be a Gradient or array. "
+                f"Failed object: An invalid object was passed for nabla. Nabla must be a Gradient or NDArray. "
                 f"Received nabla type of {type(nabla)}."
             )
 

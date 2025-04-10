@@ -32,8 +32,6 @@ epoch_log = []
 epochs = 1_000
 
 for epoch in range(epochs):
-    w_nablas = {'w1': [], 'w2': []}
-    b_nablas = {'b1': [], 'b2': []}
     running_loss = 0.0
     for data_pt, label_pt in zip(data, labels):
         x, y = gp.matrix([data_pt]), gp.matrix([label_pt])
@@ -41,19 +39,13 @@ for epoch in range(epochs):
         yhat = g(a1 @ w2 + b2)
         loss = criterion(yhat, y)
         running_loss += loss.tensor.item()
-        w_nablas['w1'].append(gp.nabla(w1, loss))
-        w_nablas['w2'].append(gp.nabla(w2, loss))
-        b_nablas['b1'].append(gp.nabla(b1, loss))
-        b_nablas['b2'].append(gp.nabla(b2, loss))
-        gp.Matrix.reset()
-        gp.Matrix.track_reset()
+        optimize(w1, gp.nabla(w1, loss))
+        optimize(b1, gp.nabla(b1, loss))
+        optimize(w2, gp.nabla(w2, loss))
+        optimize(b2, gp.nabla(b2, loss))
+        gp.zero_grad()
     print(f"Epoch {epoch}/{epochs} – Loss {running_loss}")
     running_losses.append(running_loss)
-    optimize(w1, w_nablas['w1'])
-    optimize(w2, w_nablas['w2'])
-    optimize(b1, b_nablas['b1'])
-    optimize(b2, b_nablas['b2'])
-    gp.Gradient.reset()
 
 print(w1, b1, w2, b2, sep='\n')
 
@@ -61,7 +53,7 @@ print(w1, b1, w2, b2, sep='\n')
 plt.style.use('default')
 plt.rcParams['font.family'] = 'courier'
 plt.plot(range(epochs), list(running_losses), color='black', linewidth=1)
-plt.title(label="Loss Curve [Batching]")
+plt.title(label="Loss Curve [Single Iteration]")
 plt.xlabel(xlabel="Epoch")
 plt.ylabel(ylabel="Loss [SSR]")
 plt.ylim(0)
