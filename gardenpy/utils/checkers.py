@@ -13,9 +13,10 @@ from warnings import warn
 
 class Params:
     r"""
-    **General parameter setup.**
+    **Parameter class.**
 
-    General items required for use in :class:`ParamChecker`, organized in a class.
+    Collection of parameters and their properties, including defaults, datatypes, value types, and conversion types.
+    Used by :class:`ParamChecker`.
     """
     def __init__(
             self,
@@ -25,7 +26,7 @@ class Params:
             ctypes: dict[str, callable] | None = None
     ):
         r"""
-        **Set parameter settings for a class instance.**
+        **Parameter creation.**
 
         Parameters:
             default (dict | None), default = None: Default values.
@@ -41,7 +42,7 @@ class Params:
         self._vtypes = self._check_vtypes(vtypes)
         self._ctypes = self._check_ctypes(ctypes)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"default: {self._default}\n"
             f"dtypes: {self._dtypes}\n"
@@ -50,10 +51,10 @@ class Params:
         )
 
     @staticmethod
-    def _check_type(itm):
+    def _check_type(itm: any) -> dict | None:
         if itm is not None and not isinstance(itm, dict):
             # check itm
-            raise TypeError("Invalid type: Each parameter item must be None or a dictionary")
+            raise TypeError("Invalid type: Each parameter item must be a dictionary or None.")
         # return itm
         return itm
 

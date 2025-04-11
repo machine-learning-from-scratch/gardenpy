@@ -1,6 +1,6 @@
 r"""
 Example training script (checkered or non-checkered).
-Maximally optimized.
+Maximally non-optimized.
 Memory leak tracing.
 SSR
 """
@@ -49,22 +49,14 @@ for epoch in range(1, epochs + 1):
         x = gp.matrix(x)
         y = gp.matrix(y)
         # forward pass
-        beta1 = x @ w1 + b1
-        a1 = g(beta1)
-        alpha2 = a1 @ w2
-        beta2 = alpha2 + b2
-        yhat = g(beta2)
+        a1 = g(x @ w1 + b1)
+        yhat = g(a1 @ w2 + b2)
         loss = criterion(yhat=yhat, y=y)
         # backward pass
-        d_yhat = gp.nabla(yhat, loss)
-        d_beta2 = gp.chain(gp.nabla(beta2, yhat), d_yhat)
-        d_b2 = gp.chain(gp.nabla(b2, beta2), d_beta2)
-        d_alpha2 = gp.chain(gp.nabla(alpha2, beta2), d_beta2)
-        d_w2 = gp.chain(gp.nabla(w2, alpha2), d_alpha2)
-        d_a1 = gp.chain(gp.nabla(a1, alpha2), d_alpha2)
-        d_beta1 = gp.chain(gp.nabla(beta1, a1), d_a1)
-        d_b1 = gp.chain(gp.nabla(b1, beta1), d_beta1)
-        d_w1 = gp.chain(gp.nabla(w1, beta1), d_beta1)
+        d_b2 = gp.nabla(b2, loss)
+        d_w2 = gp.nabla(w2, loss)
+        d_b1 = gp.nabla(b1, loss)
+        d_w1 = gp.nabla(w1, loss)
         # optimization
         optim(theta=w1, nabla=d_w1)
         optim(theta=b1, nabla=d_b1)
