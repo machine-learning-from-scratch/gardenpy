@@ -1,15 +1,16 @@
 import gardenpy as gp
+import numpy as np
 import matplotlib.pyplot as plt
 
-w_initializer = gp.Initializer('kaiming')
+w_initializer = gp.Initializer('kaiming', beta=0.1)
 b_initializer = gp.Initializer('uniform', kappa=0.0)
-g = gp.Activator('lrelu', beta=1e-02)
+g = gp.Activator('lrelu', beta=0.1)
 criterion = gp.Criterion('ssr')
 optimize = gp.Optimizer('adam', alpha=1e-02)
 
-w1 = w_initializer(2, 4)
-b1 = b_initializer(1, 4)
-w2 = w_initializer(4, 2)
+w1 = w_initializer(2, 3)
+b1 = b_initializer(1, 3)
+w2 = w_initializer(3, 2)
 b2 = b_initializer(1, 2)
 
 gp.functional.add_tags([w1, b1, w2, b2], ['retain'] * 4)
@@ -27,9 +28,9 @@ labels = [
     [0, 1]
 ]
 
-running_losses = []
+losses = []
 epoch_log = []
-epochs = 1_000
+epochs = 10_000
 
 for epoch in range(epochs):
     w_nablas = {'w1': [], 'w2': []}
@@ -48,7 +49,7 @@ for epoch in range(epochs):
         gp.Matrix.reset()
         gp.Matrix.track_reset()
     print(f"Epoch {epoch}/{epochs} – Loss {running_loss}")
-    running_losses.append(running_loss)
+    losses.append(running_loss)
     optimize(w1, w_nablas['w1'])
     optimize(w2, w_nablas['w2'])
     optimize(b1, b_nablas['b1'])
@@ -60,10 +61,11 @@ print(w1, b1, w2, b2, sep='\n')
 # loss graph
 plt.style.use('default')
 plt.rcParams['font.family'] = 'courier'
-plt.plot(range(epochs), list(running_losses), color='black', linewidth=1)
+plt.plot(range(1, epochs + 1), list(losses), color='black', linewidth=1)
 plt.title(label="Loss Curve [Batching]")
 plt.xlabel(xlabel="Epoch")
 plt.ylabel(ylabel="Loss [SSR]")
-plt.ylim(0)
+plt.ylim(0 - (np.max(losses) - np.min(losses)) / 100, np.max(losses) + (np.max(losses) - np.min(losses)) / 100)
+plt.xlim(0 - epochs / 100, epochs + epochs / 100)
 plt.grid(True, linestyle='--', color='dimgray', alpha=0.5)
 plt.show()

@@ -1409,12 +1409,12 @@ class Matrix(_Tensor):
             return -np.ones(other.shape)
 
     # internal instance
-    _matmul = _MatMul()
-    _pow = _Pow()
-    _mul = _Mul()
-    _truediv = _TrueDiv()
-    _add = _Add()
-    _sub = _Sub()
+    _matmul: _MatMul = _MatMul()
+    _pow: _Pow = _Pow()
+    _mul: _Mul = _Mul()
+    _truediv: _TrueDiv = _TrueDiv()
+    _add: _Add = _Add()
+    _sub: _Sub = _Sub()
 
     # NB: Dunder methods might not allow the first object to be a non-Matrix object.
     # __r__ dunder methods will still attempt dunder calls.

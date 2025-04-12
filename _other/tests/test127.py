@@ -8,13 +8,12 @@ SSR
 import gardenpy as gp
 import numpy as np
 import time
-import tracemalloc
 import matplotlib.pyplot as plt
 
 ########################################################################################################################
 
 # training parameters
-epochs = 12_000
+epochs = 10_000
 
 # parameters
 w1 = gp.Initializer('kaiming', beta=0.1)(2, 3)
@@ -38,8 +37,7 @@ labels = [[[0, 1]], [[1, 0]], [[1, 0]], [[0, 1]]]
 ########################################################################################################################
 
 start_time = time.perf_counter()
-memory_usage = np.random.randn(epochs)
-tracemalloc.start()
+losses = np.random.randn(epochs)
 
 # training
 accu_loss = 0.0
@@ -75,14 +73,13 @@ for epoch in range(1, epochs + 1):
         gp.zero_grad()
 
     # logging
-    memory_usage[epoch - 1] = tracemalloc.get_traced_memory()[1] / 1024
+    losses[epoch - 1] = accu_loss
 
     # progress bar
     gp.progress(epoch - 1, epochs, b_len=100, b_type=3, desc=f"{accu_loss:.10f}")
     # reset accumulation loss
     accu_loss = 0.0
 
-tracemalloc.stop()
 end_time = time.perf_counter()
 
 ########################################################################################################################
@@ -107,13 +104,14 @@ for outcome in outcomes:
 # elapsed time
 print(f"elapsed time: {end_time - start_time}")
 
-# memory leak graph
+# loss graph
 plt.style.use('default')
 plt.rcParams['font.family'] = 'courier'
-plt.plot(range(epochs + 1), [0] + list(memory_usage), color='black', linewidth=1)
-plt.title(label="Memory Usage")
+plt.plot(range(epochs), list(losses), color='black', linewidth=1)
+plt.title(label="Loss Curve [Single Iteration]")
 plt.xlabel(xlabel="Epoch")
-plt.ylabel(ylabel="Peak Memory [KB]")
-plt.ylim(0)
+plt.ylabel(ylabel="Loss [SSR]")
+plt.ylim(0 - (np.max(losses) - np.min(losses)) / 100, np.max(losses) + (np.max(losses) - np.min(losses)) / 100)
+plt.xlim(0 - epochs / 100, epochs + epochs / 100)
 plt.grid(True, linestyle='--', color='dimgray', alpha=0.5)
 plt.show()
