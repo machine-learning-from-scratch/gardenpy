@@ -1,7 +1,7 @@
 r"""
 **GardenPy raw operators.**
 
-Raw operations meant for generalization.
+Raw operations for generalization.
 
 Contains:
     - :func:`inf_remove`
@@ -11,12 +11,12 @@ import numpy as np
 from numpy.typing import NDArray
 
 
-def inf_remove(inf_val: float = 1e10) -> callable:
+def inf_remove(inf_val: float | int = 1e10) -> callable:
     r"""
     **Replaces infinity with a finite value.
 
     Parameters:
-        inf_val (float), default = 1e10: Replaced infinity value.
+        inf_val (float | int), default = 1e10: Replaced infinity value.
 
     Returns:
         callable: Callable function
@@ -25,7 +25,7 @@ def inf_remove(inf_val: float = 1e10) -> callable:
         AssertionError: Invalid inf_val value.
     """
     # check inf_val
-    assert isinstance(inf_val, float) and 0 < inf_val, "inf_val must be a positive number."
+    assert isinstance(inf_val, (float, int)) and 0 < inf_val, "inf_val must be a positive number."
 
     def decorator(func: callable) -> callable:
         def wrapper(*args: any, **kwargs: any) -> NDArray:

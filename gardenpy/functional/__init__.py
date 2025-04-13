@@ -18,28 +18,11 @@ Contains:
     - :class:`Activator`
     - :class:`Criterion`
     - :class:`Optimizer`
-    - :func:`inf_remove`
 """
 
-from .objects import (
-    Matrix,
-    Gradient
-)
-from .operators import (
-    matrix,
-    nabla,
-    chain,
-    replace,
-    zero_grad,
-    add_tags
-)
-from .algorithms import (
-    Initializer,
-    Activator,
-    Criterion,
-    Optimizer
-)
-from .raw_operators import inf_remove
+from .objects import Matrix, Gradient
+from .operators import matrix, nabla, chain, replace, zero_grad, add_tags
+from .algorithms import Initializer, Activator, Criterion, Optimizer
 
 __all__ = [
     'Matrix',
@@ -53,6 +36,5 @@ __all__ = [
     'Initializer',
     'Activator',
     'Criterion',
-    'Optimizer',
-    'inf_remove'
+    'Optimizer'
 ]

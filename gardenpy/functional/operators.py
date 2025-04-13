@@ -35,27 +35,27 @@ def matmul(main: Matrix | NDArray, other: Matrix | NDArray) -> Matrix:
 
 
 @wraps(wrapped=Matrix.rpow)
-def power(main: Matrix | NDArray | float, other: Matrix | NDArray | float) -> Matrix:
+def power(main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
     return Matrix.rpow(main=main, other=other)
 
 
 @wraps(wrapped=Matrix.rmul)
-def multiply(main: Matrix | NDArray | float, other: Matrix | NDArray | float) -> Matrix:
+def multiply(main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
     return Matrix.rmul(main=main, other=other)
 
 
 @wraps(wrapped=Matrix.rtruediv)
-def divide(main: Matrix | NDArray | float, other: Matrix | NDArray | float) -> Matrix:
+def divide(main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
     return Matrix.rtruediv(main=main, other=other)
 
 
 @wraps(wrapped=Matrix.radd)
-def add(main: Matrix | NDArray | float, other: Matrix | NDArray | float) -> Matrix:
+def add(main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
     return Matrix.radd(main=main, other=other)
 
 
 @wraps(wrapped=Matrix.rsub)
-def subtract(main: Matrix | NDArray | float, other: Matrix | NDArray | float) -> Matrix:
+def subtract(main: Matrix | NDArray | float | int, other: Matrix | NDArray | float | int) -> Matrix:
     return Matrix.rsub(main=main, other=other)
 
 

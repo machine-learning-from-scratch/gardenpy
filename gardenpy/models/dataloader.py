@@ -14,6 +14,7 @@ from ..functional.objects import Matrix
 
 
 class DataLoader:
+    # todo: learn more about generators and rewrite this
     def __init__(
             self,
             data: NDArray | list,

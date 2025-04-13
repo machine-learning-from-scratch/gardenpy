@@ -14,25 +14,9 @@ For implementation examples, detailed documentation, mathematical documentation,
     - http://http://45.63.57.237
 """
 
-from .functional import (
-    Matrix,
-    Gradient,
-    matrix,
-    nabla,
-    chain,
-    zero_grad,
-    Initializer,
-    Activator,
-    Criterion,
-    Optimizer
-)
-from .models import (
-    DNN,
-    DataLoader
-)
-from .utils import (
-    progress
-)
+from .functional import Matrix, Gradient, matrix, nabla, chain, zero_grad, Initializer, Activator, Criterion, Optimizer
+from .models import DNN, DataLoader
+from .utils import Progress
 
 # metadata
 __version__ = '0.4.2'
@@ -62,5 +46,5 @@ __all__ = [
     'Optimizer',
     'DNN',
     'DataLoader',
-    'progress',
+    'Progress'
 ]

@@ -1,7 +1,9 @@
+# TODO: Ints are NOT floats. Have to rewrite a lot here.
+
 r"""
 **GardenPy machine learning algorithms.**
 
-Core machine learning algorithms for the GardenPy library.
+Core machine learning algorithms.
 
 Contains:
     - :class:`Initializer`
@@ -16,7 +18,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .objects import Matrix, Gradient
-from .raw_operators import inf_remove
+from ..utils.raw_operators import inf_remove
 from ..utils.checkers import Params, ParamChecker
 
 
@@ -45,7 +47,7 @@ class _Algorithm(ABC):
         Parameters:
             method (str): Method name.
             hyperparameters (dict[str, any] | None): Method hyperparameters.
-            **kwargs (any): Optional Key-word method hyperparameters.
+            **kwargs (any): Key-word method hyperparameters.
         """
         # internal setup
         self._method: str | None = None
@@ -73,7 +75,7 @@ class _Algorithm(ABC):
         Used for all _Algorithm subclasses.
 
         Parameters:
-            ikwiad (bool): ikwiad state.
+            ikwiad (bool | None): ikwiad state.
                 If no state is given, ikwiad will switch states.
         """
         if ikwiad is None:
@@ -135,7 +137,7 @@ class Initializer(_Algorithm):
     _hyperparameters: dict[str, Params] = {
             'kaiming': Params(
                 default={'beta': 1e-02, 'mu': 0.0, 'sigma': 1.0, 'kappa': 1.0},
-                dtypes={'beta': float, 'mu': float, 'sigma': float, 'kappa': float},
+                dtypes={'beta': (float, int), 'mu': (float, int), 'sigma': (float, int), 'kappa': (float, int)},
                 vtypes={
                     'beta': lambda x: 0 <= x,
                     'mu': lambda x: True,
@@ -151,19 +153,19 @@ class Initializer(_Algorithm):
             ),
             'xavier': Params(
                 default={'mu': 0.0, 'sigma': 1.0, 'kappa': 1.0},
-                dtypes={'mu': float, 'sigma': float, 'kappa': float},
+                dtypes={'mu': (float, int), 'sigma': (float, int), 'kappa': (float, int)},
                 vtypes={'mu': lambda x: True, 'sigma': lambda x: 0 < x, 'kappa': lambda x: True},
                 ctypes={'mu': lambda x: float(x), 'sigma': lambda x: float(x), 'kappa': lambda x: float(x)}
             ),
             'gaussian': Params(
                 default={'mu': 0.0, 'sigma': 1.0, 'kappa': 1.0},
-                dtypes={'mu': float, 'sigma': float, 'kappa': float},
+                dtypes={'mu': (float, int), 'sigma': (float, int), 'kappa': (float, int)},
                 vtypes={'mu': lambda x: True, 'sigma': lambda x: 0 < x, 'kappa': lambda x: True},
                 ctypes={'mu': lambda x: float(x), 'sigma': lambda x: float(x), 'kappa': lambda x: float(x)}
             ),
             'uniform': Params(
                 default={'kappa': 1.0},
-                dtypes={'kappa': float},
+                dtypes={'kappa': (float, int)},
                 vtypes={'kappa': lambda x: True},
                 ctypes={'kappa': lambda x: float(x)}
             )
@@ -176,25 +178,25 @@ class Initializer(_Algorithm):
         Any hyperparameters that remain unfilled are set to their default value.
 
         kaiming (Kaiming/He)
-            - beta (float), default = 1e-02, 0.0 <= beta: Leaky ReLU slope.
-            - mu (float), default = 0.0: Distribution mean.
-            - sigma (float), default = 1.0, 0.0 < sigma: Distribution standard deviation.
-            - kappa (float), default = 1.0: Distribution gain.
+            - beta (float | int), default = 1e-02, 0.0 <= beta: Leaky ReLU slope.
+            - mu (float | int), default = 0.0: Distribution mean.
+            - sigma (float | int), default = 1.0, 0.0 < sigma: Distribution standard deviation.
+            - kappa (float | int), default = 1.0: Distribution gain.
         xavier (Xavier/Glorot)
-            - mu (float), default = 0.0: Distribution mean.
-            - sigma (float), default = 1.0, 0.0 < sigma: Distribution standard deviation.
-            - kappa (float), default = 1.0: Distribution gain.
+            - mu (float | int), default = 0.0: Distribution mean.
+            - sigma (float | int), default = 1.0, 0.0 < sigma: Distribution standard deviation.
+            - kappa (float | int), default = 1.0: Distribution gain.
         gaussian (Gaussian/Normal)
-            - mu (float), default = 0.0: Distribution mean.
-            - sigma (float), default = 1.0, 0.0 < sigma: Distribution standard deviation.
-            - kappa (float), default = 1.0: Distribution gain.
+            - mu (float | int), default = 0.0: Distribution mean.
+            - sigma (float | int), default = 1.0, 0.0 < sigma: Distribution standard deviation.
+            - kappa (float | int), default = 1.0: Distribution gain.
         uniform (Uniform)
-            - kappa (float), default = 1.0: Uniform value.
+            - kappa (float | int), default = 1.0: Uniform value.
 
         Parameters:
             method (str): Method name.
             hyperparameters (dict[str, any] | None): Method hyperparameters.
-            **kwargs (any): Optional Key-word method hyperparameters.
+            **kwargs (any): Key-word method hyperparameters.
 
         Raises:
             TypeError: Invalid hyperparameter types.
@@ -312,20 +314,20 @@ class Activator(_Algorithm):
             'relu': Params(default=None, dtypes=None, vtypes=None, ctypes=None),
             'lrelu': Params(
                 default={'beta': 1e-02},
-                dtypes={'beta': float},
+                dtypes={'beta': (float, int)},
                 vtypes={'beta': lambda x: 0 < x},
                 ctypes={'beta': lambda x: float(x)}
             ),
             'sigmoid': Params(default=None, dtypes=None, vtypes=None, ctypes=None),
             'softplus': Params(
                 default={'beta': 1.0},
-                dtypes={'beta': float},
+                dtypes={'beta': (float, int)},
                 vtypes={'beta': lambda x: 0 < x},
                 ctypes={'beta': lambda x: float(x)}
             ),
             'mish': Params(
                 default={'beta': 1.0},
-                dtypes={'beta': float},
+                dtypes={'beta': (float, int)},
                 vtypes={'beta': lambda x: 0 < x},
                 ctypes={'beta': lambda x: float(x)}
             )
@@ -342,20 +344,20 @@ class Activator(_Algorithm):
         relu (Rectified Linear Unit / ReLU)
             - None
         lrelu (Leaky Rectified Linear Unit / Leaky ReLU)
-            - beta (float), default = 1e-2, 0.0 < beta: Negative slope.
+            - beta (float | int), default = 1e-2, 0.0 < beta: Negative slope.
         sigmoid (Sigmoid)
             - None
         tanh (Tanh)
             - None
         softplus (Softplus)
-            - beta (float), default = 1.0, 0.0 <= beta: Vertical stretch.
+            - beta (float | int), default = 1.0, 0.0 <= beta: Vertical stretch.
         mish (Mish)
-            - beta (float), default = 1.0, 0.0 <= beta: Vertical stretch.
+            - beta (float | int), default = 1.0, 0.0 <= beta: Vertical stretch.
 
         Parameters:
             method (str): Method name.
             hyperparameters (dict[str, any] | None): Method hyperparameters.
-            **kwargs (any): Optional Key-word method hyperparameters.
+            **kwargs (any): Key-word method hyperparameters.
 
         Raises:
             TypeError: Invalid hyperparameter types.
@@ -556,7 +558,7 @@ class Criterion(_Algorithm):
         Parameters:
             method (str): Method name.
             hyperparameters (dict[str, any] | None): Method hyperparameters.
-            **kwargs (any): Optional Key-word method hyperparameters.
+            **kwargs (any): Key-word method hyperparameters.
 
         Raises:
             TypeError: Invalid hyperparameter types.
@@ -709,11 +711,11 @@ class Optimizer(_Algorithm):
         'adam': Params(
             default={'alpha': 1e-03, 'lambda_d': 0.0, 'beta_1': 0.9, 'beta_2': 0.999, 'epsilon': 1e-10, 'ams': False},
             dtypes={
-                'alpha': float,
-                'lambda_d': float,
-                'beta_1': float,
-                'beta_2': float,
-                'epsilon': float,
+                'alpha': (float, int),
+                'lambda_d': (float, int),
+                'beta_1': (float, int),
+                'beta_2': (float, int),
+                'epsilon': (float, int),
                 'ams': (bool, int)
             },
             vtypes={
@@ -735,7 +737,13 @@ class Optimizer(_Algorithm):
         ),
         'sgd': Params(
             default={'alpha': 1e-03, 'lambda_d': 0.0, 'mu': 0.0, 'tau': 0.0, 'nesterov': False},
-            dtypes={'alpha': float, 'lambda_d': float, 'mu': float, 'tau': float, 'nesterov': (bool, int)},
+            dtypes={
+                'alpha': (float, int),
+                'lambda_d': (float, int),
+                'mu': (float, int),
+                'tau': (float, int),
+                'nesterov': (bool, int)
+            },
             vtypes={
                 'alpha': lambda x: True,
                 'lambda_d': lambda x: 0.0 <= x < 1.0,
@@ -753,7 +761,13 @@ class Optimizer(_Algorithm):
         ),
         'rmsp': Params(
             default={'alpha': 1e-03, 'lambda_d': 0.0, 'beta': 0.99, 'mu': 0.0, 'epsilon': 1e-10},
-            dtypes={'alpha': float, 'lambda_d': float, 'beta': float, 'mu': float, 'epsilon': float},
+            dtypes={
+                'alpha': (float, int),
+                'lambda_d': (float, int),
+                'beta': (float, int),
+                'mu': (float, int),
+                'epsilon': (float, int)
+            },
             vtypes={
                 'alpha': lambda x: True,
                 'lambda_d': lambda x: 0.0 <= x < 1.0,
@@ -778,30 +792,30 @@ class Optimizer(_Algorithm):
         Any hyperparameters that remain unfilled are set to their default value.
 
         adam:
-            - alpha (float), default = 1e-03: Learning rate.
-            - lambda_d (float), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
-            - beta_1 (float), default = 0.9, 0 < lambda_d < 1.0: First moment beta.
-            - beta_2 (float), default = 0.999, 0 < lambda_d < 1.0: Second moment beta.
-            - epsilon (float), default = 1e-10, 0 < epsilon <= 1e-02: Numerical stability constant.
+            - alpha (float | int), default = 1e-03: Learning rate.
+            - lambda_d (float | int), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
+            - beta_1 (float | int), default = 0.9, 0 < lambda_d < 1.0: First moment beta.
+            - beta_2 (float | int), default = 0.999, 0 < lambda_d < 1.0: Second moment beta.
+            - epsilon (float | int), default = 1e-10, 0 < epsilon <= 1e-02: Numerical stability constant.
             - ams (bool, int), default = False: Adam AMS variant.
         sgd:
-            - alpha (float), default = 1e-03: Learning rate.
-            - lambda_d (float), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
-            - mu (float), default = 0.0, 0.0 <= mu < 1.0: Momentum.
-            - tau (float), default = 0.0, 0.0 <= tau < 1.0: Dampening.
+            - alpha (float | int), default = 1e-03: Learning rate.
+            - lambda_d (float | int), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
+            - mu (float | int), default = 0.0, 0.0 <= mu < 1.0: Momentum.
+            - tau (float | int), default = 0.0, 0.0 <= tau < 1.0: Dampening.
             - nesterov (bool, int), default = False: Nesterov variant.
         rmsp:
-            - alpha (float), default = 1e-03: Learning rate.
-            - lambda_d (float), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
-            - beta (float), default = 0.99, 0.0 <= beta < 1.0: First moment beta.
-            - mu (float), default = 0.0, 0.0 <= mu < 1.0: Momentum.
-            - epsilon (float), default = 1e-10, 0 < epsilon <= 1e-02: Numerical stability constant.
+            - alpha (float | int), default = 1e-03: Learning rate.
+            - lambda_d (float | int), default = 0.0, 0 <= lambda_d < 1.0: L2 term.
+            - beta (float | int), default = 0.99, 0.0 <= beta < 1.0: First moment beta.
+            - mu (float | int), default = 0.0, 0.0 <= mu < 1.0: Momentum.
+            - epsilon (float | int), default = 1e-10, 0 < epsilon <= 1e-02: Numerical stability constant.
 
         Parameters:
             method (str): Method name.
             hyperparameters (dict[str, any] | None): Method hyperparameters.
             corr: bool, default = True: Memory correlation for Matrices.
-            **kwargs (any): Optional Key-word method hyperparameters.
+            **kwargs (any): Key-word method hyperparameters.
 
         Raises:
             TypeError: Invalid hyperparameter types.

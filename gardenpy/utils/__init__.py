@@ -2,38 +2,32 @@ r"""
 **GardenPy Utilities.**
 
 Contains:
+    - :module:`raw_operators`
+    - :module:`errors`
     - :module:`checkers`
     - :module:`helpers`
-    - :module:`errors`
+    - :func:`inf_remove`
+    - :class:`TrackingError`
+    - :class:`MissingMethodError`
     - :class:`Params`
     - :class:`ParamChecker`
-    - :class:`MissingMethodError`
-    - :class:`TrackingError`
     - :dict:`ansi`
-    - :func:`progress`
+    - :class:`Progress`
     - :func:`convert_time`
 """
 
-from .checkers import (
-    Params,
-    ParamChecker
-)
-from .helpers import (
-    ansi,
-    progress,
-    convert_time
-)
-from .errors import (
-    MissingMethodError,
-    TrackingError
-)
+from .raw_operators import inf_remove
+from .errors import TrackingError, MissingMethodError
+from .checkers import Params, ParamChecker
+from .helpers import ansi, Progress, convert_time
 
 __all__ = [
+    'inf_remove',
+    'TrackingError',
+    'MissingMethodError',
     'Params',
     'ParamChecker',
     'ansi',
-    'progress',
-    'convert_time',
-    'MissingMethodError',
-    'TrackingError'
+    'Progress',
+    'convert_time'
 ]

@@ -13,5 +13,5 @@ from .dataloader import DataLoader
 
 __all__ = [
     'DNN',
-    'dataloader'
+    'DataLoader'
 ]

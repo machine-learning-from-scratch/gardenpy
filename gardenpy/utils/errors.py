@@ -1,15 +1,12 @@
 r"""
-**Built-in errors.**
+**GardenPy built-in errors.**
+
+Custom errors.
 
 Contains:
-    - :class:`MissingMethodError`
     - :class:`TrackingError`
+    - :class:`MissingMethodError`
 """
-
-
-class MissingMethodError(Exception):
-    r"""**Missing method.**"""
-    pass
 
 
 class TrackingError(Exception):
@@ -28,5 +25,11 @@ class TrackingError(Exception):
         """
         # error message
         if message is None:
-            message = f"No relation could be found between\n{grad}\nand\n{wrt}"
+            message = f"No relationship could be found between\n{grad}\nand\n{wrt}"
         super().__init__(str(message))
+
+
+class MissingMethodError(Exception):
+    r"""**Missing method.**"""
+    # TODO: Once implemented, most likely in DNN, add base internal logic.
+    pass
