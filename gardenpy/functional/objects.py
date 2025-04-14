@@ -26,7 +26,7 @@ T = TypeVar('T', bound='_Tensor')
 # NB: Subclassed _Tensors requires internal setup.
 # Make sure to redefine the internal _cache for each subclass.
 # Additionally, redefine the _prefix and keep it distinct from other subclasses to reduce confusion.
-# Finally, define the _default_tracker and set the _tracker for each subclass.
+# Finally, define a tracker by definition of default tracker with _d_tracker and call _set_tracker to create a _tracker.
 class _Tensor(ABC):
     r"""
     **GardenPy's base Tensor.**
@@ -55,8 +55,7 @@ class _Tensor(ABC):
 
         Parameters:
             obj (any): Object to be turned into a Tensor.
-            _ndim (int): Allowed dimensions of the Tensor object.
-                0 < _ndim.
+            _ndim (int), 0 < _ndim: Allowed dimensions of the Tensor object.
 
         Raises:
             TypeError: Object wasn't an _ndim-dimensional array consisting of only real numbers.
@@ -84,11 +83,11 @@ class _Tensor(ABC):
         self._id: int | None = None
         self._tensor: NDArray | None = obj
         # set autodiff internals
-        self._default_tracker: dict[str, T | list | None] | None = None
+        self._d_tracker: dict[str, T | list | None] | None = None
         self._tracker: dict[str, T | list | None] | None = None
         # other internals
         self._tags: list[str] = []
-        self._ndim = _ndim
+        self._ndim: int = _ndim
 
         # cache instance
         self._add_cache(itm=self)
@@ -516,8 +515,9 @@ class _Tensor(ABC):
         return itm, itm_id
 
     def _set_tracker(self) -> None:
-        self._tracker = self._default_tracker.copy()
-        for key in self._default_tracker.keys():
+        self._tracker = self._d_tracker.copy()
+        for key in self._d_tracker.keys():
+            # deepcopy
             self._tracker[key] = []
         return None
 
@@ -581,7 +581,7 @@ class Matrix(_Tensor):
         """
         super().__init__(obj=obj, _ndim=2)
         # matrix subclass internals
-        self._default_tracker = {'derivative': None, 'relation': None, 'origin': None}
+        self._d_tracker: dict[str, Matrix | list | None] | None = {'derivative': None, 'relation': None, 'origin': None}
         self._set_tracker()
 
     def instance_track_reset(self) -> None:
@@ -1551,7 +1551,7 @@ class Gradient(_Tensor):
         assert _override, "Raw Gradient creation isn't recommended; to create a Gradient object, signal override."
         super().__init__(obj=obj, _ndim=4)
         # gradient subclass internals
-        self._default_tracker = {'chain': None}
+        self._d_tracker: dict[str, Gradient | list | None] | None = {'chain': None}
         self._set_tracker()
 
     def reduce_grad(self) -> Matrix | None:

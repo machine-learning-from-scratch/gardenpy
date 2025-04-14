@@ -54,25 +54,25 @@ class Progress:
     _parameters: Params = Params(
         default={
             'length': 50,
+            'left': f"{ansi['reset']}",
+            'right': f"{ansi['reset']}",
             'completed': f"{ansi['green']}—",
-            'uncompleted': f"{ansi['red']}—",
-            'left': f"{ansi['reset']}[",
-            'right': f"{ansi['reset']}]"
+            'uncompleted': f"{ansi['red']}—"
         },
-        dtypes={'length': int, 'completed': str, 'uncompleted': str, 'left': str, 'right': str},
+        dtypes={'length': int, 'left': str, 'right': str, 'completed': str, 'uncompleted': str},
         vtypes={
             'length': lambda x: 0 < x,
-            'completed': lambda x: True,
-            'uncompleted': lambda x: True,
             'left': lambda x: True,
-            'right': lambda x: True
+            'right': lambda x: True,
+            'completed': lambda x: True,
+            'uncompleted': lambda x: True
         },
         ctypes={
             'length': lambda x: x,
+            'left': lambda x: x,
+            'right': lambda x: x,
             'completed': lambda x: x,
             'uncompleted': lambda x: x,
-            'left': lambda x: x,
-            'right': lambda x: x
         }
     )
 
@@ -125,7 +125,7 @@ class Progress:
             f"\r{ansi['reset']}{self._style['left']}"
             f"{ansi['reset']}{self._style['completed'] * int(self._style['length'] * comp)}"
             f"{ansi['reset']}{self._style['uncompleted'] * (self._style['length'] - int(self._style['length'] * comp))}"
-            f"{ansi['reset']}{self._style['right']}{ansi['reset']}  {desc or ''}{ansi['reset']}"
+            f"{ansi['reset']}{self._style['right']}{ansi['reset']}{desc or ''}{ansi['reset']}"
         )
         sys.stdout.flush()
         if comp == 1:

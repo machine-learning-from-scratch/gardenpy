@@ -37,7 +37,7 @@ start_time = time.perf_counter()
 
 # training
 accu_loss = 0.0
-progress = gp.Progress(max_idx=epochs, length=100)
+progress = gp.Progress(max_idx=epochs, length=50, left='', right='', completed='—', uncompleted=' ')
 for epoch in range(1, epochs + 1):
     for i, (x, y) in enumerate(zip(data, labels)):
         x = gp.matrix(x)
@@ -69,7 +69,7 @@ for epoch in range(1, epochs + 1):
         gp.zero_grad()
 
     # progress bar
-    progress(f"{accu_loss:.10f}")
+    progress(f"  {accu_loss:.10f}")
     # reset accumulation loss
     accu_loss = 0
 

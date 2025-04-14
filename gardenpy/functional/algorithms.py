@@ -378,7 +378,7 @@ class Activator(_Algorithm):
             @staticmethod
             def backward(x: NDArray) -> NDArray:
                 # TODO: Fully implement softmax.
-                raise NotImplementedError("Algorithm not implemented: Currently mathematically deriving.")
+                raise NotImplementedError("Algorithm not implemented: Currently mathematically deriving Softmax.")
 
         class _ReLU(Matrix.LoneElementWiseMethod):
             # relu
