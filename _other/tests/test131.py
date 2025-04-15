@@ -5,6 +5,8 @@ dict1 = {
 
 list1 = ['v', 'w', 'x', 'y', 'z']
 
-for list_itm, random_itm in zip(list1[::-1], [value[::-1] for value in dict1.values()]):
-    # todo: shit
-    print(list_itm, random_itm, sep=' ')
+for list_itm, number, letter in zip(list1[::-1], *[value[::-1] for value in dict1.values()]):
+    print(list_itm, number, letter)
+
+for number, letter in zip(*[value[::-1] for value in dict1.values()]):
+    print(number, letter)

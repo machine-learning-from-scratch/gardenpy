@@ -1,5 +1,3 @@
-from sympy.core.facts import deduce_alpha_implications
-
 from ._nn import _NN
 from ..functional.objects import Matrix, Gradient
 
@@ -32,7 +30,7 @@ class DNN(_NN):
         # parameter gradient storage
         self._gradients['weights'].append(d_weight)
         self._gradients['biases'].append(d_bias)
-        for layer, weight, bias in zip(self._layers[-1::-1], self._parameters['weights'][::-1], self._parameters['biases'][::-1]):
+        for layer, weight, bias in zip(self._layers[-1::-1], *[param[-1::-1] for param in self._parameters.values()]):
             # layer pass
             d_neuron = Gradient.chain(up=Gradient.nabla(grad=layer['neurons'], wrt=layer['alpha']), down=d_alpha)
             d_alpha.instance_reset()
