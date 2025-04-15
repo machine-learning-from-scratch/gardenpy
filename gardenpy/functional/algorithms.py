@@ -16,6 +16,7 @@ from abc import ABC, abstractmethod
 from warnings import warn
 import numpy as np
 from numpy.typing import NDArray
+from typing import Callable
 
 from .objects import Matrix, Gradient
 from ..utils.raw_operators import inf_remove
@@ -208,7 +209,7 @@ class Initializer(_Algorithm):
         # hyperparameter reference
         h = self._hyperparams
 
-        def initializer_method(func: callable) -> callable:
+        def initializer_method(func: Callable) -> Callable:
             def wrapper(*args: int) -> Matrix:
                 # check dimensionality
                 if not all(isinstance(arg, int) and 0 < arg for arg in args):

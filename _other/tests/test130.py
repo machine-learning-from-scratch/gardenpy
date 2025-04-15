@@ -1,6 +1,6 @@
 r"""
 Example training script (checkered or non-checkered).
-Maximally optimized.
+Maximally optimized - old.
 SSR
 """
 
@@ -43,8 +43,7 @@ for epoch in range(1, epochs + 1):
         x = gp.matrix(x)
         y = gp.matrix(y)
         # forward pass
-        alpha1 = x @ w1
-        beta1 = alpha1 + b1
+        beta1 = x @ w1 + b1
         a1 = g(beta1)
         alpha2 = a1 @ w2
         beta2 = alpha2 + b2
@@ -59,8 +58,7 @@ for epoch in range(1, epochs + 1):
         d_a1 = gp.chain(gp.nabla(a1, alpha2), d_alpha2)
         d_beta1 = gp.chain(gp.nabla(beta1, a1), d_a1)
         d_b1 = gp.chain(gp.nabla(b1, beta1), d_beta1)
-        d_alpha1 = gp.chain(gp.nabla(alpha1, beta1), d_beta1)
-        d_w1 = gp.chain(gp.nabla(w1, alpha1), d_alpha1)
+        d_w1 = gp.chain(gp.nabla(w1, beta1), d_beta1)
         # optimization
         optim(theta=w1, nabla=d_w1)
         optim(theta=b1, nabla=d_b1)

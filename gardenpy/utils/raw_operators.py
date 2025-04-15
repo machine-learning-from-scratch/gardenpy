@@ -9,9 +9,10 @@ Contains:
 
 import numpy as np
 from numpy.typing import NDArray
+from typing import Callable
 
 
-def inf_remove(inf_val: float | int = 1e10) -> callable:
+def inf_remove(inf_val: float | int = 1e10) -> Callable:
     r"""
     **Replaces infinity with a finite value.
 
@@ -19,7 +20,7 @@ def inf_remove(inf_val: float | int = 1e10) -> callable:
         inf_val (float | int), default = 1e10: Replaced infinity value.
 
     Returns:
-        callable: Callable function
+        Callable: Callable function
 
     Raises:
         AssertionError: Invalid inf_val value.
@@ -27,7 +28,7 @@ def inf_remove(inf_val: float | int = 1e10) -> callable:
     # check inf_val
     assert isinstance(inf_val, (float, int)) and 0 < inf_val, "inf_val must be a positive number."
 
-    def decorator(func: callable) -> callable:
+    def decorator(func: Callable) -> Callable:
         def wrapper(*args: any, **kwargs: any) -> NDArray:
             # forward func
             array = func(*args, **kwargs)

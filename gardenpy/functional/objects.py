@@ -515,10 +515,7 @@ class _Tensor(ABC):
         return itm, itm_id
 
     def _set_tracker(self) -> None:
-        self._tracker = self._d_tracker.copy()
-        for key in self._d_tracker.keys():
-            # deepcopy
-            self._tracker[key] = []
+        self._tracker = {key: [] for key in self._d_tracker}
         return None
 
     def _unpack_ids(self, itm: T | list | property | None) -> list | str | float | int | None:
