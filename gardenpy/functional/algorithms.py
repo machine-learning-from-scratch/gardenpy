@@ -1,5 +1,3 @@
-# TODO: Ints are NOT floats. Have to rewrite a lot here.
-
 r"""
 **GardenPy machine learning algorithms.**
 
@@ -946,12 +944,15 @@ class Optimizer(_Algorithm):
         elif isinstance(nabla, list):
             for i, itm in enumerate(nabla):
                 if isinstance(itm, Gradient):
+                    # gradient reduction
                     nabla[i] = np.sum(itm.tensor, axis=(0, 1))
                 elif not isinstance(itm, np.ndarray):
+                    # invalid item
                     raise TypeError(
                         f"Failed object: An invalid object was passed for the nabla collection. "
                         f"Nabla items must be Gradients or NDArrays. Received invalid item type of {type(itm)}."
                     )
+            # sum gradients
             nabla = np.sum(nabla, axis=0)
         elif not isinstance(nabla, np.ndarray):
             # gradient error

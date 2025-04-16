@@ -14,7 +14,7 @@ from typing import Callable
 
 def inf_remove(inf_val: float | int = 1e10) -> Callable:
     r"""
-    **Replaces infinity with a finite value.
+    **Replaces infinity with a finite value.**
 
     Parameters:
         inf_val (float | int), default = 1e10: Replaced infinity value.

@@ -7,6 +7,8 @@ Contains:
 
 from abc import ABC, abstractmethod
 from copy import deepcopy
+import numpy as np
+from numpy.typing import NDArray
 from typing import Callable
 
 from ..functional.objects import Matrix, Gradient
@@ -19,14 +21,14 @@ class _NN(ABC):
         self._status: bool = bool(status)
         self._ikwiad: bool = bool(ikwiad)
         # model internals
-        self._parameters: dict[str, list[Matrix]] | None = None
-        self._initializers: Callable | None = None
-        self._acts: Callable | None = None
+        self._parameters: dict[str, list[Matrix | None]] | None = None
+        self._initializers: list[Callable] | None = None
+        self._acts: list[Callable] | None = None
         self._criterion: Callable | None = None
         self._optim: Callable | None = None
         # intermediate model internals
-        self._activations: list[dict[str, Matrix | None]] | None = None
-        self._loss: Matrix | None = None
+        self._layers: list[dict[str, Matrix | None]] | None = None
+        self._outcomes: dict[str, Matrix | None] | None = None
 
     @property
     def parameters(self) -> dict[str, list[Matrix]]:
@@ -73,8 +75,12 @@ class _NN(ABC):
     def forward(self, x: Matrix) -> Matrix:
         pass
 
-    def criterion(self, y: Matrix) -> Matrix:
-        return self._criterion(yhat=..., y=y)
+    @abstractmethod
+    def criterion(self, y: Matrix | NDArray) -> Matrix:
+        if not isinstance(y, (Matrix, NDArray)):
+            raise TypeError
+        self._outcomes['loss'] = self._criterion(yhat=self._layers[-1]['neurons'], y=y)
+        return self._outcomes['loss']
 
     @abstractmethod
     def backward(self) -> None:

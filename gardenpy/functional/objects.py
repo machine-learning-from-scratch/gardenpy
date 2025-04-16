@@ -959,7 +959,7 @@ class Matrix(_Tensor):
                 main_val = main
             else:
                 raise TypeError(
-                    f"Invalid type: Main object expected valid type Matrix, or NDArray. "
+                    f"Invalid type: Main object expected valid type Matrix or NDArray. "
                     f"This method can be run with the Gradient if func:`reduce_grad` is used to convert "
                     f"the Gradient into a Matrix. "
                     f"Received type {type(main)}."
