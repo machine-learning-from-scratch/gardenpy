@@ -30,8 +30,6 @@ GardenPy automatically creates a computational graph to represent all calculatio
 When a line calls for gradient calculation, GardenPy uses tape-based automatic differentiation and a search tree to
 relate two Tensors.
 
-![Computational Graph](https://github.com/machine-learning-from-scratch/gardenpy/blob/main/docs/computational_graph.gif)
-
 ------------------------------------------------------------------------------------------------------------------------
 
 ## **Expansion of Methods**
