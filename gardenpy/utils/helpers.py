@@ -109,15 +109,36 @@ class Progress:
         # return style
         return checker(params=style, **kwargs)
 
+    def reset(self, show: bool = False, desc: str | None = None):
+        r"""
+        **Resets progress bar.**
+
+        Resets the progress bar and internal index counter.
+        Optionally shows the reset progress bar.
+
+        Parameters:
+            show (bool), default=False: Print reset progress bar.
+            desc (str | None: Bar description. Alterable with each call.
+        """
+        self._idx = 0
+        if show:
+            sys.stdout.write(
+                f"\r{ansi['reset']}{self._style['left']}"
+                f"{ansi['reset']}{self._style['uncompleted'] * self._style['length']}"
+                f"{ansi['reset']}{self._style['right']}{ansi['reset']}{desc or ''}{ansi['reset']}"
+            )
+            sys.stdout.flush()
+        return None
+
     def __call__(self, desc: str | None = None) -> None:
         r"""
         **Displays progress bar.**
 
-        Iterates internal index counter with each call and displays the appropriate progress bar.
-        Prints a newline once the index counter reaches the maximum index.
+        Iterates the internal index counter with each call and displays the appropriate progress bar.
+        Print a newline once the index counter reaches the maximum index.
 
         Parameters:
-            desc (str): Bar description. Alterable with each call.
+            desc (str | None): Bar description. Alterable with each call.
         """
         # completed progress
         comp = (self._idx + 1) / self._max_idx

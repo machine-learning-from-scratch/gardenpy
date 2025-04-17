@@ -43,13 +43,15 @@ tracemalloc.start()
 
 # training
 accu_loss = 0.0
-gp.progress(-1, epochs, b_len=100, b_type=1, desc="NaN")
+progress = gp.Progress(max_idx=epochs, length=50, left='', right='', completed='—', uncompleted=' ')
+progress.reset(show=True, desc="  NaN")
 for epoch in range(1, epochs + 1):
     for i, (x, y) in enumerate(zip(data, labels)):
         x = gp.matrix(x)
         y = gp.matrix(y)
         # forward pass
-        beta1 = x @ w1 + b1
+        alpha1 = x @ w1
+        beta1 = alpha1 + b1
         a1 = g(beta1)
         alpha2 = a1 @ w2
         beta2 = alpha2 + b2
@@ -60,11 +62,16 @@ for epoch in range(1, epochs + 1):
         d_beta2 = gp.chain(gp.nabla(beta2, yhat), d_yhat)
         d_b2 = gp.chain(gp.nabla(b2, beta2), d_beta2)
         d_alpha2 = gp.chain(gp.nabla(alpha2, beta2), d_beta2)
+        d_beta2.instance_reset()
         d_w2 = gp.chain(gp.nabla(w2, alpha2), d_alpha2)
         d_a1 = gp.chain(gp.nabla(a1, alpha2), d_alpha2)
+        d_alpha2.instance_reset()
         d_beta1 = gp.chain(gp.nabla(beta1, a1), d_a1)
         d_b1 = gp.chain(gp.nabla(b1, beta1), d_beta1)
-        d_w1 = gp.chain(gp.nabla(w1, beta1), d_beta1)
+        d_alpha1 = gp.chain(gp.nabla(alpha1, beta1), d_beta1)
+        d_beta1.instance_reset()
+        d_w1 = gp.chain(gp.nabla(w1, alpha1), d_alpha1)
+        d_alpha1.instance_reset()
         # optimization
         optim(theta=w1, nabla=d_w1)
         optim(theta=b1, nabla=d_b1)
@@ -78,7 +85,7 @@ for epoch in range(1, epochs + 1):
     memory_usage[epoch - 1] = tracemalloc.get_traced_memory()[1] / 1024
 
     # progress bar
-    gp.progress(epoch - 1, epochs, b_len=100, b_type=3, desc=f"{accu_loss:.10f}")
+    progress(desc=f"  {accu_loss:.10f}")
     # reset accumulation loss
     accu_loss = 0.0
 

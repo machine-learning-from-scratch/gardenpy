@@ -38,6 +38,7 @@ start_time = time.perf_counter()
 # training
 accu_loss = 0.0
 progress = gp.Progress(max_idx=epochs, length=50, left='', right='', completed='—', uncompleted=' ')
+progress.reset(show=True, desc="  NaN")
 for epoch in range(1, epochs + 1):
     for i, (x, y) in enumerate(zip(data, labels)):
         x = gp.matrix(x)
@@ -55,12 +56,16 @@ for epoch in range(1, epochs + 1):
         d_beta2 = gp.chain(gp.nabla(beta2, yhat), d_yhat)
         d_b2 = gp.chain(gp.nabla(b2, beta2), d_beta2)
         d_alpha2 = gp.chain(gp.nabla(alpha2, beta2), d_beta2)
+        d_beta2.instance_reset()
         d_w2 = gp.chain(gp.nabla(w2, alpha2), d_alpha2)
         d_a1 = gp.chain(gp.nabla(a1, alpha2), d_alpha2)
+        d_alpha2.instance_reset()
         d_beta1 = gp.chain(gp.nabla(beta1, a1), d_a1)
         d_b1 = gp.chain(gp.nabla(b1, beta1), d_beta1)
         d_alpha1 = gp.chain(gp.nabla(alpha1, beta1), d_beta1)
+        d_beta1.instance_reset()
         d_w1 = gp.chain(gp.nabla(w1, alpha1), d_alpha1)
+        d_alpha1.instance_reset()
         # optimization
         optim(theta=w1, nabla=d_w1)
         optim(theta=b1, nabla=d_b1)
