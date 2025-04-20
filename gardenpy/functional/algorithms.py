@@ -135,7 +135,7 @@ class Initializer(_Algorithm):
     ]
     _hyperparameters: dict[str, Params] = {
             'kaiming': Params(
-                default={'beta': 1e-02, 'mu': 0.0, 'sigma': 1.0, 'kappa': 1.0},
+                default={'beta': 0.0, 'mu': 0.0, 'sigma': 1.0, 'kappa': 1.0},
                 dtypes={'beta': (float, int), 'mu': (float, int), 'sigma': (float, int), 'kappa': (float, int)},
                 vtypes={
                     'beta': lambda x: 0 <= x,

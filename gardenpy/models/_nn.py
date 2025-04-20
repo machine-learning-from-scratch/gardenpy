@@ -2,7 +2,7 @@ r"""
 **GardenPy pre-built NN base classes.**
 
 Contains:
-    - :class:`BaseNN`
+    - :class:`_NN`
 """
 
 from abc import ABC, abstractmethod
@@ -22,10 +22,10 @@ class _NN(ABC):
         self._ikwiad: bool = bool(ikwiad)
         # model internals
         self._parameters: dict[str, list[Matrix | None]] | None = None
-        self._initializers: list[Callable] | None = None
-        self._acts: list[Callable] | None = None
-        self._criterion: Callable | None = None
-        self._optim: Callable | None = None
+        self._initializers: list[Initializer] | None = None
+        self._acts: list[Activator] | None = None
+        self._criterion: Criterion | None = None
+        self._optim: Optimizer | None = None
         # intermediate model internals
         self._layers: list[dict[str, Matrix | None]] | None = None
         self._outcomes: dict[str, Matrix | None] | None = None
