@@ -1,7 +1,6 @@
 r"""
 Example training script (checkered or non-checkered).
 Maximally optimized.
-Memory leak tracing.
 SSR
 """
 
@@ -13,7 +12,7 @@ import matplotlib.pyplot as plt
 ########################################################################################################################
 
 # training parameters
-epochs = 1_000
+epochs = 400
 
 # parameters
 w1 = gp.Initializer('kaiming', beta=0.1)(2, 3)
@@ -112,13 +111,13 @@ for outcome in outcomes:
 print(f"elapsed time: {end_time - start_time}")
 
 # loss graph
-plt.style.use('default')
+plt.style.use('dark_background')
 plt.rcParams['font.family'] = 'courier'
-plt.plot(range(epochs), list(losses), color='black', linewidth=1)
+plt.plot(range(epochs), list(losses), color='white', linewidth=1)
 plt.title(label="Loss Curve [Single Iteration]")
 plt.xlabel(xlabel="Epoch")
 plt.ylabel(ylabel="Loss [SSR]")
 plt.ylim(0 - (np.max(losses) - np.min(losses)) / 100, np.max(losses) + (np.max(losses) - np.min(losses)) / 100)
 plt.xlim(0 - epochs / 100, epochs + epochs / 100)
-plt.grid(True, linestyle='--', color='dimgray', alpha=0.5)
+# plt.grid(True, linestyle='--', color='dimgray', alpha=0.5)
 plt.show()

@@ -90,6 +90,10 @@ class DNN:
             raise TypeError
         self._optim = optimizer or Optimizer(method='adam')
 
+    @parameters.setter
+    def parameters(self, thetas: dict[str, list[Initializer | Matrix | None]] | None) -> None:
+        ...
+
     def instantiate(self) -> None:
         ...
 
@@ -100,6 +104,12 @@ class DNN:
             neurons = self._acts[lyr](x=beta)
             self._layers[lyr] = {'alpha': alpha, 'beta': beta, 'neurons': neurons}
         return self._layers[-1]['neurons']
+
+    def evaluate(self, y: Matrix | NDArray) -> Matrix:
+        if not isinstance(y, (Matrix, np.ndarray)):
+            raise TypeError
+        self._outcomes['loss'] = self._criterion(yhat=self._layers[-1]['neurons'], y=y)
+        return self._outcomes['loss']
 
     def backward(self):
         # last layer set

@@ -4,9 +4,9 @@ r"""
 Core objects.
 
 Contains:
-    - class:`_Tensor`
-    - class:`Matrix`
-    - class:`Gradient`
+    - :class:`_Tensor`
+    - :class:`Matrix`
+    - :class:`Gradient`
 """
 
 from __future__ import annotations
