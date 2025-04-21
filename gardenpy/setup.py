@@ -46,13 +46,20 @@ with open('README.md', 'r') as f:
 setup(
     name='gardenpy',
     version=__meta('version'),
-    description=__meta('description'),
-    long_description=long_desc,
-    author=__meta('author'),
-    author_email=__meta('author_email'),
-    url=__meta('url'),
-    download_url=__meta('download_url'),
-    license=__meta('license'),
-    license_file=os.path.join(os.path.dirname(__file__), 'LICENCE'),
-    packages=find_packages(),
+    packages=find_packages()
 )
+
+# setup
+# setup(
+#     name='gardenpy',
+#     version=__meta('version'),
+#     description=__meta('description'),
+#     long_description=long_desc,
+#     author=__meta('author'),
+#     author_email=__meta('author_email'),
+#     url=__meta('url'),
+#     download_url=__meta('url'),
+#     license=__meta('license'),
+#     license_file=os.path.join(os.path.dirname(__file__), 'LICENCE'),
+#     packages=find_packages(),
+# )
