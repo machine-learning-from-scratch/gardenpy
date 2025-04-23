@@ -98,4 +98,52 @@ peripherals: PeripheralsConfig = PeripheralsConfig(
 
 ########################################################################################################################
 
+# check dataclasses
+# NB: There are no error messages here.
+# If (when) an assertion fails, pray.
+
+# layer sizes
+assert isinstance(architecture.layer_sizes, list)
+assert all((isinstance(lyr, int) and 0 < lyr) for lyr in architecture.layer_sizes)
+# weights
+assert isinstance(architecture.weights.methods, list)
+assert all(isinstance(mth, str) for mth in architecture.weights.methods)
+assert isinstance(architecture.weights.hyperparams, list)
+for hyp in architecture.weights.hyperparams:
+    if hyp is None:
+        continue
+    assert isinstance(hyp, dict)
+    assert all(isinstance(val, (float, int, bool)) for val in hyp.values())
+# biases
+assert isinstance(architecture.biases.methods, list)
+assert all(isinstance(mth, str) for mth in architecture.biases.methods)
+assert isinstance(architecture.biases.hyperparams, list)
+for hyp in architecture.biases.hyperparams:
+    if hyp is None:
+        continue
+    assert isinstance(hyp, dict)
+    assert all(isinstance(val, (float, int, bool)) for val in hyp.values())
+# activators
+assert isinstance(architecture.activators.methods, list)
+assert all(isinstance(mth, str) for mth in architecture.activators.methods)
+assert isinstance(architecture.activators.hyperparams, list)
+for hyp in architecture.activators.hyperparams:
+    if hyp is None:
+        continue
+    assert isinstance(hyp, dict)
+    assert all(isinstance(val, (float, int, bool)) for val in hyp.values())
+
+# criterion
+assert isinstance(peripherals.criterion.method, str)
+if peripherals.criterion.hyperparams is not None:
+    assert isinstance(peripherals.criterion.hyperparams, dict)
+    assert all(isinstance(val, (float, int, bool)) for val in peripherals.criterion.hyperparams.values())
+# optimizer
+assert isinstance(peripherals.optimizer.method, str)
+if peripherals.optimizer.hyperparams is not None:
+    assert isinstance(peripherals.optimizer.hyperparams, dict)
+    assert all(isinstance(val, (float, int, bool)) for val in peripherals.optimizer.hyperparams.values())
+
+########################################################################################################################
+
 __all__: list[str] = ['architecture', 'peripherals']
