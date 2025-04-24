@@ -27,7 +27,7 @@ __description__ = 'Automatic differentiation with built-in machine learning algo
 __url__ = 'https://github.com/machine-learning-from-scratch/gardenpy'
 __status__ = 'Development'
 
-__all__ = [
+__all__: list[str] = [
     'Matrix',
     'Gradient',
     'matrix',

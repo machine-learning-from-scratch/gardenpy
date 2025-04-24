@@ -48,6 +48,28 @@ loaders: LoaderConfig = LoaderConfig(
 
 ########################################################################################################################
 
+# check dataclasses
+# NB: There are no error messages here.
+# If (when) an assertion fails, pray.
+
+# saving
+assert isinstance(training.location, str)
+assert isinstance(training.model, str)
+# training
+assert isinstance(training.epochs, int)
+assert 0 < training.epochs
+assert isinstance(training.save_gap, int)
+assert 0 < training.save_gap
+
+# location
+assert isinstance(loaders.location, str)
+# loader internals
+assert isinstance(loaders.batch_size, int)
+assert 0 < loaders.batch_size
+assert isinstance(loaders.shuffle, bool)
+assert isinstance(loaders.valid_split, (float, int))
+assert 0.0 <= loaders.valid_split < 1.0
+
 ########################################################################################################################
 
 __all__: list[str] = ['training', 'loaders']

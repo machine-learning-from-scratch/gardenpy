@@ -7,6 +7,6 @@ Contains:
 
 from .raw import c_matrix
 
-__all__ = [
+__all__: list[str] = [
     'c_matrix'
 ]

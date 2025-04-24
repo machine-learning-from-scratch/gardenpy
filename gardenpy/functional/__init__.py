@@ -24,7 +24,7 @@ from .objects import Matrix, Gradient
 from .operators import matrix, nabla, chain, replace, zero_grad, add_tags
 from .algorithms import Initializer, Activator, Criterion, Optimizer
 
-__all__ = [
+__all__: list[str] = [
     'Matrix',
     'Gradient',
     'matrix',

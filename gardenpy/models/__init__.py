@@ -11,7 +11,7 @@ Contains:
 from .dnn import DNN
 from .dataloader import DataLoader
 
-__all__ = [
+__all__: list[str] = [
     'DNN',
     'DataLoader'
 ]

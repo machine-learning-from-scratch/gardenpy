@@ -21,7 +21,7 @@ from .errors import TrackingError, MissingMethodError
 from .checkers import Params, ParamChecker
 from .helpers import ansi, Progress, convert_time
 
-__all__ = [
+__all__: list[str] = [
     'inf_remove',
     'TrackingError',
     'MissingMethodError',
