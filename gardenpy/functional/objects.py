@@ -16,8 +16,8 @@ from warnings import warn
 import numpy as np
 from numpy.typing import NDArray
 
-from ..utils.raw_operators import inf_remove
 from ..utils.errors import TrackingError
+from ..utils.raw_operators import inf_remove
 
 # generic tensor type T
 T = TypeVar('T', bound='_Tensor')

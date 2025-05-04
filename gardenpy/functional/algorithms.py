@@ -11,14 +11,14 @@ Contains:
 """
 
 from abc import ABC, abstractmethod
+from typing import Callable
 from warnings import warn
 import numpy as np
 from numpy.typing import NDArray
-from typing import Callable
 
 from .objects import Matrix, Gradient
-from ..utils.raw_operators import inf_remove
 from ..utils.checkers import Params, ParamChecker
+from ..utils.raw_operators import inf_remove
 
 
 # NB: All algorithms within this file should inherit from this abstract class.
