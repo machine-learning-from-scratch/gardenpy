@@ -6,6 +6,7 @@ from ._nn import _NN  # TODO: Utilize ABC
 from ..functional.objects import Matrix, Gradient
 from ..functional.algorithms import Initializer, Activator, Criterion, Optimizer
 
+
 class DNN:
     def __init__(self, *, ikwiad: bool = False):
         # general internals
@@ -47,12 +48,12 @@ class DNN:
         return None
 
     @property
-    def parameters(self) -> dict[str, list[Matrix] | None]:
-        params_copy = {key: [] for key in self._parameters}
+    def thetas(self) -> dict[str, list[Matrix] | None]:
+        params_copy: dict[str, list | None] = {key: [] for key in self._parameters}
         for copy_key, main_itm in zip(params_copy, self._parameters.values()):
             # shallow matrix copy
             if main_itm is None:
-                params_copy[copy_key] = None  # todo: figure out why linting
+                params_copy[copy_key] = None
             params_copy[copy_key] = [itm.copy() for itm in main_itm]
         return params_copy
 
@@ -90,8 +91,8 @@ class DNN:
             raise TypeError
         self._optim = optimizer or Optimizer(method='adam')
 
-    @parameters.setter
-    def parameters(self, thetas: dict[str, list[Initializer | Matrix | None]] | None) -> None:
+    @thetas.setter
+    def thetas(self, thetas: dict[str, list[Initializer | Matrix | None]] | None) -> None:
         ...
 
     def instantiate(self) -> None:
