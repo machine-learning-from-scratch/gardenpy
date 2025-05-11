@@ -92,7 +92,7 @@ class DNN:
         self._optim = optimizer or Optimizer(method='adam')
 
     @thetas.setter
-    def thetas(self, thetas: dict[str, list[Initializer | Matrix | None]] | None) -> None:
+    def thetas(self, thetas: dict[str, list[Initializer | Matrix | None]] | None = None) -> None:
         ...
 
     def instantiate(self) -> None:
