@@ -156,6 +156,39 @@ class Progress:
         return None
 
 
+# todo: figure out import ordering and add _Tensor type
+def visualize_cache(cache: list[dict[str, list | str | None] | None], itm_break: str = ' ') -> str:
+    r"""
+    **Turns raw cache into a color-visualized string.**
+
+    Converted cache is not interactable; it is just a string.
+
+    Parameters:
+        cache (list[dict[str, _Tensor | list | str | None] | None]): Cache to be visualized.
+        itm_break (str), default = '': Line break between cache items.
+
+    Returns:
+        str: Visualized cache
+    """
+    # initialize cache str
+    cache_str = ""
+    for itm in cache:
+        if itm is None:
+            # none item
+            cache_str += f"{ansi['yellow']}None{ansi['reset']}{itm_break}"
+            continue
+        # normal item
+        cache_str += "{"
+        _, val = list(itm.items())[0]
+        cache_str += f"{ansi['magenta']}{ansi['bold']}{val}{ansi['reset']} | ".replace("'", '')
+        for key, val in list(itm.items())[1:-1]:
+            cache_str += f"{ansi['cyan']}{key}{ansi['reset']}: {val} ".replace("'", '')
+        key, val = list(itm.items())[-1]
+        cache_str += f"{ansi['cyan']}{key}{ansi['reset']}: {val}".replace("'", '')
+        cache_str += f"}}{itm_break}"
+    return cache_str
+
+
 def convert_time(seconds: float | int) -> str:
     r"""
     **Converts seconds to hours:minutes:seconds.**

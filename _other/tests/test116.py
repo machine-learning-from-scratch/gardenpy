@@ -12,9 +12,22 @@ import gardenpy as gp
 # debug functions
 def print_cache_debug(title: str) -> None:
     gp.Matrix.ikwiad(True)
-    print(f"{title}\n")
-    print(f"MATRICES: {gp.Matrix.cache_debug()}\n")
-    print(f"GRADIENTS: {gp.Gradient.cache_debug()}\n")
+    print(f"{gp.utils.ansi['bold']}{gp.utils.ansi['bright_yellow']}{title}{gp.utils.ansi['reset']}\n")
+    # colored
+    print(
+        f"{gp.utils.ansi['red']}MATRICES{gp.utils.ansi['reset']}:\n"
+        f"{gp.utils.helpers.visualize_cache(gp.Matrix.cache_debug(), itm_break='\n')}"
+    )
+    print(
+        f"{gp.utils.ansi['red']}GRADIENTS{gp.utils.ansi['reset']}:\n"
+        f"{gp.utils.helpers.visualize_cache(gp.Gradient.cache_debug(), itm_break='\n')}"
+    )
+    # color one-line
+    # print(f"MATRICES: {gp.utils.helpers.visualize_cache(gp.Matrix.cache_debug())}\n")
+    # print(f"GRADIENTS: {gp.utils.helpers.visualize_cache(gp.Gradient.cache_debug())}\n")
+    # raw
+    # print(f"MATRICES: {gp.Matrix.cache_debug()}\n")
+    # print(f"GRADIENTS: {gp.Gradient.cache_debug()}\n")
     return None
 
 
@@ -55,10 +68,10 @@ labels = [[[0, 1]], [[1, 0]], [[1, 0]], [[0, 1]]]
 accu_loss = 0.0
 # gp.progress(-1, epochs, b_len=100, b_type=1, desc="NaN")
 for epoch in range(1, epochs + 1):
-    print(f"EPOCH {epoch}")
+    print(f"{gp.utils.ansi['bold']}{gp.utils.ansi['blue']}EPOCH {epoch}{gp.utils.ansi['reset']}")
     for i, (x, y) in enumerate(zip(data, labels)):
         # debug 0
-        print(f"ITERATION {i}")
+        print(f"{gp.utils.ansi['bold']}{gp.utils.ansi['blue']}ITERATION {i}{gp.utils.ansi['reset']}")
         print_cache_debug(title='INITIAL CACHES')
         # matrix conversion
         x = gp.matrix(x)
@@ -93,7 +106,7 @@ for epoch in range(1, epochs + 1):
         # debug 3
         print_cache_debug(title='FINAL CACHES')
 
-    # raise RuntimeError  # my computer will explode if i let this continue once it's fixed
+    raise RuntimeError  # my computer will explode if i let this continue once it's fixed
 
     # progress bar
     # gp.progress(epoch - 1, epochs, b_len=100, b_type=1, desc=f"{accu_loss:.10f}")
