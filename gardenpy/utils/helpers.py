@@ -72,7 +72,7 @@ class Progress:
             'left': lambda x: x,
             'right': lambda x: x,
             'completed': lambda x: x,
-            'uncompleted': lambda x: x,
+            'uncompleted': lambda x: x
         }
     )
 
@@ -118,7 +118,7 @@ class Progress:
 
         Parameters:
             show (bool), default=False: Print reset progress bar.
-            desc (str | None: Bar description. Alterable with each call.
+            desc (str | None) : Bar description. Alterable with each call.
         """
         self._idx = 0
         if show:
@@ -165,7 +165,7 @@ def visualize_cache(cache: list[dict[str, list | str | None] | None], itm_break:
 
     Parameters:
         cache (list[dict[str, _Tensor | list | str | None] | None]): Cache to be visualized.
-        itm_break (str), default = '': Line break between cache items.
+        itm_break (str), default = ' ': Line break between cache items.
 
     Returns:
         str: Visualized cache
@@ -175,17 +175,17 @@ def visualize_cache(cache: list[dict[str, list | str | None] | None], itm_break:
     for itm in cache:
         if itm is None:
             # none item
-            cache_str += f"{ansi['yellow']}None{ansi['reset']}{itm_break}"
+            cache_str += f"{ansi['bright_black']}None{ansi['reset']}{itm_break}"
             continue
         # normal item
-        cache_str += "{"
+        cache_str += ""
         _, val = list(itm.items())[0]
-        cache_str += f"{ansi['magenta']}{ansi['bold']}{val}{ansi['reset']} | ".replace("'", '')
+        cache_str += f"{ansi['cyan']}{val}{ansi['reset']} | ".replace("'", '')
         for key, val in list(itm.items())[1:-1]:
-            cache_str += f"{ansi['cyan']}{key}{ansi['reset']}: {val} ".replace("'", '')
+            cache_str += f"{ansi['green']}{key}{ansi['reset']}: {val} ".replace("'", '')
         key, val = list(itm.items())[-1]
-        cache_str += f"{ansi['cyan']}{key}{ansi['reset']}: {val}".replace("'", '')
-        cache_str += f"}}{itm_break}"
+        cache_str += f"{ansi['green']}{key}{ansi['reset']}: {val}".replace("'", '')
+        cache_str += f"{itm_break}"
     return cache_str
 
 
